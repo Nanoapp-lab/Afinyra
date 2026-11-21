@@ -276,16 +276,31 @@ function renderSanctionHistory(actions) {
   if (!actions.length) return target.append(make('p', null, 'Nenhuma medida aplicada até o momento.'));
   const table = make('table', 'portal-table');
   const head = make('thead'); const hrow = make('tr');
-  for (const title of ['Data', 'Usuário', 'Medida', 'Justificativa']) hrow.append(make('th', null, title));
+  for (const title of ['Data', 'Usuário', 'Medida', 'Duração e término', 'Justificativa']) hrow.append(make('th', null, title));
   head.append(hrow); table.append(head);
   const body = make('tbody');
   for (const action of actions) {
     const tr = make('tr');
     for (const value of [formatDate(action.criado_em), moderationProfile(action.usuario_id),
-      action.acao, action.motivo]) tr.append(make('td', null, value || '—'));
+      actionName(action.acao), measurePeriod(action), action.motivo]) tr.append(make('td', null, value || '—'));
     body.append(tr);
   }
   table.append(body); target.append(table);
+}
+function actionName(action) {
+  return ({ advertencia: 'Advertência', suspensao: 'Suspensão',
+    banimento: 'Banimento', reversao: 'Reversão' })[action] || action || '—';
+}
+function measurePeriod(action) {
+  if (action.acao === 'banimento') return 'Sem prazo definido';
+  if (action.acao !== 'suspensao' || !action.termina_em) return '—';
+  const start = Date.parse(action.criado_em);
+  const end = Date.parse(action.termina_em);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return `Até ${formatDate(action.termina_em)}`;
+  const hours = Math.round((end - start) / 3600000);
+  const duration = hours % 24 === 0 && hours >= 48 ?
+    `${hours / 24} dias` : `${hours} horas`;
+  return `${duration} · até ${formatDate(action.termina_em)}`;
 }
 
 async function saveDecision(item, select, note, feedback, button) {
@@ -412,7 +427,7 @@ async function loadReports() {
     const extraRequests = [
       ids.length ? authenticated(`/rest/v1/usuarios?select=id,nome,foto_url,cidade_atual&id=in.(${ids.map(encodeURIComponent).join(',')})`) : Promise.resolve([]),
       authenticated('/rest/v1/moderacao_restricoes?select=usuario_id,tipo,motivo,termina_em,ativa,atualizada_em&order=atualizada_em.desc&limit=100'),
-      authenticated('/rest/v1/moderacao_acoes?select=usuario_id,acao,motivo,criado_em&order=criado_em.desc&limit=50')
+      authenticated('/rest/v1/moderacao_acoes?select=usuario_id,acao,motivo,termina_em,criado_em&order=criado_em.desc&limit=50')
     ];
     const [profilesResult, restrictionsResult, actionsResult] = await Promise.allSettled(extraRequests);
     const restrictions = restrictionsResult.status === 'fulfilled' ? restrictionsResult.value : [];
