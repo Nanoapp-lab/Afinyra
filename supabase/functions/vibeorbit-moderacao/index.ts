@@ -121,6 +121,13 @@ Deno.serve(async (req: Request) => {
       else if (medida === 'banimento' && (horas === null || horas === undefined)) duration = '876000h';
       else if (medida !== 'advertencia' || (horas !== null && horas !== undefined)) return result(400, { error: 'Medida inválida' });
 
+      if (medida === 'suspensao') {
+        const previous = await readRestriction(token, target);
+        if (previous?.ativa && previous.tipo === 'banimento') {
+          return result(409, { error: 'Esta conta já está banida. Reverta o banimento no painel antes de aplicar outra medida.' });
+        }
+      }
+
       // Suspensao: a pessoa deve conseguir entrar e ler, enquanto os gatilhos
       // do Postgres bloqueiam escrita e participacao. Apenas banimento bloqueia Auth.
       const oldDuration = medida === 'banimento' ? await previousAuthBanDuration(target) : 'none';
