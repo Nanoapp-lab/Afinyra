@@ -36,7 +36,10 @@ async function http(path, options = {}, token = null) {
     ...options, headers, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'
   });
   if (!response.ok) {
-    const error = new Error(`Falha de comunicação (${response.status})`);
+    const body = await response.json().catch(() => ({}));
+    const explanation = typeof body.error === 'string' ? body.error :
+      (typeof body.message === 'string' ? body.message : `Falha de comunicação (${response.status})`);
+    const error = new Error(explanation.slice(0, 280));
     error.status = response.status;
     throw error;
   }
@@ -142,6 +145,149 @@ function formatDate(value) {
 }
 function shortened(id) { return id ? `${String(id).slice(0, 8)}…` : 'Não informado'; }
 
+let moderationProfiles = new Map();
+let moderationRestrictions = new Map();
+let moderationAvailable = false;
+const MODERATION_ACTIONS = [
+  { value: 'advertencia', label: 'Registrar advertência' },
+  { value: 'suspensao_24', label: 'Suspender por 24 horas' },
+  { value: 'suspensao_168', label: 'Suspender por 7 dias' },
+  { value: 'suspensao_720', label: 'Suspender por 30 dias' },
+  { value: 'banimento', label: 'Banir por tempo indeterminado' }
+];
+
+function moderationProfile(id) {
+  const p = moderationProfiles.get(id);
+  return p?.nome?.trim() || (id ? `Perfil ${shortened(id)}` : 'Perfil não identificado');
+}
+function isActiveRestriction(restriction) {
+  return restriction?.ativa === true && (restriction.tipo === 'banimento' ||
+    Date.parse(restriction.termina_em) > Date.now());
+}
+function safeProfilePhoto(value) {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'bzjwgvnyfunlwxfzbbbc.supabase.co' ? url.href : null;
+  } catch { return null; }
+}
+function profileElement(id, labelText) {
+  const profile = moderationProfiles.get(id);
+  const box = make('div', 'moderation-profile');
+  const photo = safeProfilePhoto(profile?.foto_url);
+  if (photo) {
+    const img = make('img', 'moderation-avatar');
+    img.src = photo;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    box.append(img);
+  } else {
+    box.append(make('span', 'moderation-avatar placeholder', (profile?.nome || '?').slice(0, 1).toUpperCase()));
+  }
+  const details = make('div');
+  details.append(make('span', 'moderation-label', labelText));
+  details.append(make('strong', 'moderation-name', moderationProfile(id)));
+  if (profile?.cidade_atual) details.append(make('span', 'report-meta', profile.cidade_atual));
+  details.append(make('span', 'report-meta', `ID: ${id || 'Indisponível'}`));
+  box.append(details);
+  return box;
+}
+
+function parseMeasure(value) {
+  if (value === 'advertencia' || value === 'banimento') return { medida: value, horas: null };
+  const match = /^suspensao_(24|168|720)$/.exec(value);
+  return match ? { medida: 'suspensao', horas: Number(match[1]) } : null;
+}
+function friendlyMeasure(restriction) {
+  return restriction?.tipo === 'banimento' ? 'Banimento por tempo indeterminado' :
+    `Suspensão até ${formatDate(restriction?.termina_em)}`;
+}
+async function submitMeasure(item, select, reason, feedback, button) {
+  const parsed = parseMeasure(select.value);
+  if (!parsed || !item.denunciado || !moderationAvailable) return;
+  const justification = reason.value.trim();
+  if (justification.length < 5) return feedback.textContent = 'Descreva a justificativa (mínimo de 5 caracteres).';
+  const actionName = MODERATION_ACTIONS.find(a => a.value === select.value)?.label || parsed.medida;
+  const ok = window.confirm(`Aplicar: ${actionName}\nConta: ${moderationProfile(item.denunciado)}\n\nMotivo: ${justification}\n\nConfirmar esta medida administrativa?`);
+  if (!ok) return;
+  button.disabled = true;
+  feedback.textContent = 'Aplicando medida no Supabase...';
+  try {
+    await authenticated('/functions/v1/vibeorbit-moderacao', {
+      method: 'POST', body: JSON.stringify({
+        action: 'aplicar', usuario_id: item.denunciado, origem: item.source,
+        denuncia_id: item.id, medida: parsed.medida, horas: parsed.horas, motivo: justification
+      })
+    });
+    feedback.textContent = 'Medida registrada e enviada ao controle de acesso.';
+    await loadReports();
+  } catch (error) {
+    feedback.textContent = `Medida não confirmada: ${error.message}`;
+  } finally { button.disabled = false; }
+}
+
+async function revokeMeasure(restriction, reason, feedback, button) {
+  const justification = reason.value.trim();
+  if (justification.length < 5) return feedback.textContent = 'Informe o motivo da reversão (mínimo de 5 caracteres).';
+  if (!window.confirm(`Reverter a restrição de ${moderationProfile(restriction.usuario_id)}?\n\nMotivo: ${justification}`)) return;
+  button.disabled = true;
+  feedback.textContent = 'Revertendo a restrição...';
+  try {
+    await authenticated('/functions/v1/vibeorbit-moderacao', {
+      method: 'POST', body: JSON.stringify({
+        action: 'reverter', usuario_id: restriction.usuario_id, motivo: justification
+      })
+    });
+    feedback.textContent = 'Restrição revertida com sucesso.';
+    await loadReports();
+  } catch (error) { feedback.textContent = `Reversão não confirmada: ${error.message}`; }
+  finally { button.disabled = false; }
+}
+
+function renderRestrictions(restrictions) {
+  const target = element('restriction-list');
+  target.replaceChildren();
+  const active = restrictions.filter(isActiveRestriction);
+  if (!active.length) return target.append(make('p', 'portal-subtle', 'Nenhuma conta com suspensão ou banimento ativo.'));
+  for (const restriction of active) {
+    const box = make('article', 'report-card');
+    box.append(profileElement(restriction.usuario_id, 'Conta com restrição ativa'));
+    box.append(make('p', 'restriction-summary', friendlyMeasure(restriction)));
+    box.append(make('p', 'portal-subtle', `Justificativa: ${restriction.motivo}`));
+    const field = make('div', 'portal-field');
+    const label = make('label', null, 'Motivo para revogar a medida');
+    const input = make('textarea'); input.maxLength = 1000;
+    input.placeholder = 'Explique por que a conta poderá voltar a utilizar o app.';
+    input.id = `revogar-${restriction.usuario_id}`; label.htmlFor = input.id;
+    field.append(label, input);
+    const button = make('button', 'portal-button secondary', 'Reverter suspensão / banimento');
+    button.type = 'button';
+    const feedback = make('p', 'portal-subtle'); feedback.setAttribute('role', 'status');
+    button.addEventListener('click', () => revokeMeasure(restriction, input, feedback, button));
+    box.append(field, button, feedback);
+    target.append(box);
+  }
+}
+
+function renderSanctionHistory(actions) {
+  const target = element('sanction-history');
+  target.replaceChildren();
+  if (!actions.length) return target.append(make('p', null, 'Nenhuma medida aplicada até o momento.'));
+  const table = make('table', 'portal-table');
+  const head = make('thead'); const hrow = make('tr');
+  for (const title of ['Data', 'Usuário', 'Medida', 'Justificativa']) hrow.append(make('th', null, title));
+  head.append(hrow); table.append(head);
+  const body = make('tbody');
+  for (const action of actions) {
+    const tr = make('tr');
+    for (const value of [formatDate(action.criado_em), moderationProfile(action.usuario_id),
+      action.acao, action.motivo]) tr.append(make('td', null, value || '—'));
+    body.append(tr);
+  }
+  table.append(body); target.append(table);
+}
+
 async function saveDecision(item, select, note, feedback, button) {
   const newStatus = select.value;
   if (!VALID_STATUSES.includes(newStatus)) return;
@@ -167,10 +313,14 @@ function renderReport(item) {
   top.append(make('h3', null, item.source === 'cegas' ? 'Conversa às Cegas' : 'Denúncia geral'));
   top.append(make('span', 'portal-pill', item.status || 'pendente'));
   card.append(top);
-  card.append(make('p', null, item.motivo));
+  card.append(make('p', 'moderation-label', 'Motivo e descrição enviados pelo denunciante'));
+  card.append(make('p', 'moderation-reason', item.motivo || 'Motivo não informado'));
   card.append(make('div', 'report-meta', `Registrada: ${formatDate(item.date)} · Caso ${shortened(item.id)}`));
-  card.append(make('div', 'report-meta', `Denunciante: ${shortened(item.denunciante)} · Denunciado: ${shortened(item.denunciado)}`));
+  card.append(profileElement(item.denunciado, 'Pessoa denunciada'));
+  card.append(profileElement(item.denunciante, 'Pessoa que denunciou'));
   if (item.conversa_id) card.append(make('div', 'report-meta', `Conversa: ${shortened(item.conversa_id)}`));
+  const restriction = moderationRestrictions.get(item.denunciado);
+  if (isActiveRestriction(restriction)) card.append(make('p', 'restriction-summary', `Conta já restringida: ${friendlyMeasure(restriction)}`));
   const field = make('div', 'portal-field');
   const label = make('label', null, 'Situação da denúncia');
   const select = make('select');
@@ -199,6 +349,30 @@ function renderReport(item) {
   feedback.setAttribute('role', 'status');
   button.addEventListener('click', () => saveDecision(item, select, note, feedback, button));
   card.append(button, feedback);
+  const sanctionTitle = make('h4', 'sanction-title', 'Medida sobre a conta denunciada');
+  const sanctionHint = make('p', 'portal-subtle', 'Uma denúncia resolvida não aplica punições automaticamente. Esta medida terá registro próprio e exigirá confirmação.');
+  const sanctionField = make('div', 'portal-field');
+  const sanctionLabel = make('label', null, 'Medida administrativa');
+  const sanctionSelect = make('select'); sanctionSelect.id = `medida-${item.source}-${item.id}`;
+  sanctionLabel.htmlFor = sanctionSelect.id;
+  for (const action of MODERATION_ACTIONS) {
+    const option = make('option', null, action.label); option.value = action.value;
+    sanctionSelect.append(option);
+  }
+  sanctionField.append(sanctionLabel, sanctionSelect);
+  const justificationField = make('div', 'portal-field');
+  const justificationLabel = make('label', null, 'Justificativa da medida (obrigatória)');
+  const justification = make('textarea'); justification.maxLength = 1000;
+  justification.id = `motivo-medida-${item.source}-${item.id}`;
+  justification.placeholder = 'Descreva os fatos examinados. Não use apenas uma palavra.';
+  justificationLabel.htmlFor = justification.id;
+  justificationField.append(justificationLabel, justification);
+  const sanctionButton = make('button', 'portal-button sanction-button', 'Aplicar medida');
+  sanctionButton.type = 'button'; sanctionButton.disabled = !moderationAvailable || !item.denunciado;
+  const sanctionFeedback = make('p', 'portal-subtle'); sanctionFeedback.setAttribute('role','status');
+  sanctionButton.addEventListener('click', () => submitMeasure(item, sanctionSelect, justification, sanctionFeedback, sanctionButton));
+  card.append(sanctionTitle, sanctionHint, sanctionField, justificationField, sanctionButton, sanctionFeedback);
+  if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis: atualização do Supabase ainda não confirmada.'));
   return card;
 }
 async function loadAudit() {
@@ -234,12 +408,26 @@ async function loadReports() {
       ...general.map(r => ({ ...r, source: 'geral', date: r.created_at, denunciante: r.denunciante_id, denunciado: r.denunciado_id })),
       ...blind.map(r => ({ ...r, source: 'cegas', date: r.criado_em }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const ids = [...new Set(records.flatMap(r => [r.denunciante, r.denunciado]).filter(Boolean))];
+    const extraRequests = [
+      ids.length ? authenticated(`/rest/v1/usuarios?select=id,nome,foto_url,cidade_atual&id=in.(${ids.map(encodeURIComponent).join(',')})`) : Promise.resolve([]),
+      authenticated('/rest/v1/moderacao_restricoes?select=usuario_id,tipo,motivo,termina_em,ativa,atualizada_em&order=atualizada_em.desc&limit=100'),
+      authenticated('/rest/v1/moderacao_acoes?select=usuario_id,acao,motivo,criado_em&order=criado_em.desc&limit=50')
+    ];
+    const [profilesResult, restrictionsResult, actionsResult] = await Promise.allSettled(extraRequests);
+    const restrictions = restrictionsResult.status === 'fulfilled' ? restrictionsResult.value : [];
+    const actions = actionsResult.status === 'fulfilled' ? actionsResult.value : [];
+    moderationAvailable = restrictionsResult.status === 'fulfilled' && actionsResult.status === 'fulfilled';
+    moderationProfiles = new Map((profilesResult.status === 'fulfilled' ? profilesResult.value : []).map(p => [p.id,p]));
+    moderationRestrictions = new Map(restrictions.map(r => [r.usuario_id,r]));
     element('total-count').textContent = String(records.length);
     element('pending-count').textContent = String(records.filter(r => r.status === 'pendente').length);
     element('review-count').textContent = String(records.filter(r => r.status === 'em_analise').length);
     target.replaceChildren();
     if (!records.length) target.append(make('p', 'portal-subtle', 'Nenhuma denúncia encontrada.'));
     for (const item of records) target.append(renderReport(item));
+    renderRestrictions(restrictions);
+    renderSanctionHistory(actions);
     await loadAudit();
   } catch {
     target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique a permissão administrativa e a integração do Supabase.'));
