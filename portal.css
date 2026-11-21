@@ -30,8 +30,19 @@
 .report-card h3{font-size:1.12rem;letter-spacing:-.01em;margin:0}
 .report-card p{margin:6px 0;font-size:.9rem;overflow-wrap:anywhere}
 .report-meta{color:#b8a9c4;font-size:.76rem}
+.moderation-profile{display:flex;align-items:center;gap:13px;padding:12px;background:#241630;border:1px solid #4e375f;border-radius:12px;margin-top:10px}
+.moderation-profile>div{min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.moderation-avatar{height:54px;width:54px;flex:0 0 54px;border-radius:50%;object-fit:cover;background:#38254c}
+.moderation-avatar.placeholder{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.25rem}
+.moderation-label{color:#cbb4d6;font-size:.76rem;letter-spacing:.02em}
+.moderation-name{color:#f8eefa;font-size:1.04rem}
+.moderation-reason{white-space:pre-wrap;background:#2f203e;border-radius:8px;padding:12px;font-size:1rem!important;line-height:1.6}
+.restriction-summary{font-weight:750;color:#ffcaab;background:#402a38;border:1px solid #a46776;padding:12px;border-radius:9px}
+.sanction-title{border-top:1px solid #604770;padding-top:22px;margin:25px 0 5px;font-size:1.07rem}
+.sanction-button{background:#f5b48f}
+.report-card .portal-field textarea{min-height:84px}
 .report-card .portal-field{margin:13px 0}
-.report-card .portal-field textarea{min-height:68px;resize:vertical}
+.report-card .portal-field textarea{resize:vertical}
 .portal-table{width:100%;border-collapse:collapse;font-size:.83rem}
 .portal-table td,.portal-table th{border-bottom:1px solid var(--line);padding:11px;text-align:left;overflow-wrap:anywhere}
 .portal-table th{color:#e5c3f5}
