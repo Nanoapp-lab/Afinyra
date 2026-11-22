@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Afinyra: duas pessoas se cumprimentando, formando a letra A">
+  <defs>
+    <linearGradient id="coral" x1="160" y1="835" x2="548" y2="210" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF634D"/><stop offset="1" stop-color="#FF9574"/>
+    </linearGradient>
+    <linearGradient id="azul" x1="525" y1="220" x2="835" y2="836" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64A9FF"/><stop offset="1" stop-color="#246AF4"/>
+    </linearGradient>
+    <mask id="pessoas">
+      <rect width="1024" height="1024" fill="white"/>
+      <!-- A silhueta, sem sexo ou gênero definido, é vazada na própria letra. -->
+      <path fill="black" d="M386 512c-31 0-52 24-52 55 0 22 13 40 32 49-38 22-61 61-67 119 56-23 102-53 139-84 17-15 25-30 25-48 0-9-10-19-24-22-7-39-24-69-53-69Z"/>
+      <path fill="black" d="M638 512c31 0 52 24 52 55 0 22-13 40-32 49 38 22 61 61 67 119-56-23-102-53-139-84-17-15-25-30-25-48 0-9 10-19 24-22 7-39 24-69 53-69Z"/>
+    </mask>
+  </defs>
+  <g mask="url(#pessoas)">
+    <path d="M176 815C252 621 377 336 468 217c24-31 50-46 75-37 29 10 44 41 54 69l42 114c-29-49-64-81-91-85-21-3-37 13-53 45L350 672c-41 100-95 171-174 143Z" fill="url(#coral)"/>
+    <path d="M543 180c36-6 61 23 82 59 95 157 187 378 231 576-79 28-133-43-174-143L537 323c-15-32-31-48-52-45-28 4-63 36-91 85l42-114c10-28 25-59 54-69 16-6 34-6 53 0Z" fill="url(#azul)"/>
+    <path d="M188 819c48-80 112-144 191-169 64-20 104 23 131 18 25-4 50 4 54 27-5 18-24 30-48 29-24 0-43-12-58-16-48-14-78 36-120 69-53 42-103 63-150 42Z" fill="url(#coral)"/>
+    <path d="M836 819c-48-80-112-144-191-169-64-20-104 23-131 18-25-4-50 4-54 27 5 18 24 30 48 29 24 0 43-12 58-16 48-14 78 36 120 69 53 42 103 63 150 42Z" fill="url(#azul)"/>
+  </g>
+</svg>
