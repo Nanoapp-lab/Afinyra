@@ -1,4 +1,4 @@
-# VibeOrbit — site institucional (pré-lançamento)
+# Afinyra — site institucional (pré-lançamento)
 
 Arquivos estáticos HTML, CSS e JavaScript do site VibeOrbit, com ícone original do aplicativo Android e crédito “Designed by Zetriv Technologies LTDA”.
 
@@ -10,11 +10,11 @@ Arquivos estáticos HTML, CSS e JavaScript do site VibeOrbit, com ícone origina
 4. Confirme as alterações em `main`.
 5. Vá em **Settings → Pages → Build and deployment → Deploy from a branch**.
 6. Selecione **main** e **/(root)**, clique em **Save** e aguarde a implantação.
-7. Depois da publicação, o endereço esperado será `https://nanoapp-lab.github.io/vibeorbit-site/`.
+7. Depois da publicação, o endereço esperado será `https://nanoapp-lab.github.io/Afinyra/`.
 
 Para um domínio próprio, configure **Custom domain** no Pages e só então ajuste o DNS no provedor do domínio; o domínio deve pertencer a você.
 
-## Recomendações para o VibeOrbit comercial
+## Recomendações para o Afinyra comercial
 
 - O GitHub é ótimo para versionar o código. Para a futura operação comercial, considere hospedar o site na Cloudflare Pages conectado ao repositório GitHub.
 - Este pacote **não** contém dados do Supabase, senhas, chaves secretas, dados biométricos, credenciais Didit, backend ou pagamentos.
@@ -22,4 +22,4 @@ Para um domínio próprio, configure **Custom domain** no Pages e só então aju
 - As páginas contêm `noindex,nofollow` durante o pré-lançamento: motores de busca não devem indexá-las. Quando estiver pronto para divulgação pública, revise o conteúdo e remova essa diretiva.
 - Não processe dados de usuários nem pagamentos diretamente em GitHub Pages.
 
-Projeto: VibeOrbit • Designed by Zetriv Technologies LTDA.
+Projeto: Afinyra• Designed by Zetriv Technologies LTDA.
