@@ -1,19 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Afinzer: duas pessoas em uma conversa">
-  <defs>
-    <linearGradient id="afinzer" x1="190" y1="180" x2="860" y2="815" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#97F8D0" />
-      <stop offset="0.55" stop-color="#44DEBE" />
-      <stop offset="1" stop-color="#31B6CD" />
-    </linearGradient>
-  </defs>
-  <!-- Balão de conversa: aproximação pela palavra, não pela aparência. -->
-  <path fill="url(#afinzer)" d="M295 203h435c92 0 150 58 150 148v266c0 90-58 148-150 148h-29l-109 91c-20 16-48 2-48-24v-67H295c-92 0-151-58-151-148V351c0-90 59-148 151-148Z"/>
-  <!-- Duas figuras simétricas, sem atributos de gênero. -->
-  <g fill="#151126">
-    <circle cx="400" cy="417" r="65"/>
-    <circle cx="625" cy="417" r="65"/>
-    <path d="M270 639c0-82 53-131 130-131s130 49 130 131v25H270v-25Z"/>
-    <path d="M495 639c0-82 53-131 130-131s130 49 130 131v25H495v-25Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Afinzer: uma pessoa bate à porta e outra pode abrir">
+  <title>Ícone Afinzer — uma conexão começa com um convite</title>
+  <!-- Símbolo minimalista original, sobre fundo transparente. -->
+  <!-- Pessoa do outro lado da porta: livre para decidir se abre. -->
+  <g fill="#FA5672">
+    <circle cx="768" cy="482" r="81"/>
+    <path d="M672 596c20-28 54-39 96-39 52 0 91 14 107 49 8 19 11 44 11 67v131c0 23-15 38-38 38H681c-23 0-38-15-38-38V666c0-28 8-52 29-70Z"/>
   </g>
-  <path d="M505 578v85" stroke="#3AC9BE" stroke-width="17" stroke-linecap="round"/>
+
+  <!-- Porta simples em perspectiva, entreaberta. -->
+  <path fill="#2F3033" d="M434 230 643 139c23-10 36 1 36 24v708c0 23-13 34-36 24L434 805c-17-7-25-22-25-42V274c0-20 8-35 25-44Z"/>
+  <path fill="#FFF9EC" d="M443 255 639 171c7-3 12 0 12 9v672c0 9-5 12-12 9L443 777c-7-3-8-8-8-16V272c0-8 1-14 8-17Z"/>
+  <circle cx="600" cy="615" r="21" fill="#FA5672"/>
+
+  <!-- Pessoa que toma a iniciativa: formas adultas neutras. -->
+  <g fill="#3B2AA4">
+    <circle cx="264" cy="504" r="83"/>
+    <path d="M171 622c23-24 56-37 93-37 55 0 91 22 108 57l15 22c8 11 20 13 30 6l44-47c12-13 27-12 39-1 13 12 13 27 2 40l-61 72c-27 30-62 28-82 5v61c0 26-17 42-42 42H183c-25 0-42-16-42-42v-95c0-34 9-61 30-83Z"/>
+  </g>
 </svg>
