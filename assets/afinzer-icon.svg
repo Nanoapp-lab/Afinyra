@@ -1,20 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Afinzer: uma pessoa bate à porta e outra pode abrir">
-  <title>Ícone Afinzer — uma conexão começa com um convite</title>
-  <!-- Símbolo minimalista original, sobre fundo transparente. -->
-  <!-- Pessoa do outro lado da porta: livre para decidir se abre. -->
-  <g fill="#FA5672">
-    <circle cx="768" cy="482" r="81"/>
-    <path d="M672 596c20-28 54-39 96-39 52 0 91 14 107 49 8 19 11 44 11 67v131c0 23-15 38-38 38H681c-23 0-38-15-38-38V666c0-28 8-52 29-70Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Ícone Afinzer com dois balões de conversa e nome da marca">
+  <title>Afinzer — ícone com nome</title>
+  <g transform="translate(75 -60) scale(.85)">
+    <path fill="#382AA5" d="M267 244H490c91 0 141 50 141 141v123c0 89-51 138-141 138h-69l52 78c11 17-6 31-22 20L310 646h-43c-91 0-141-50-141-141V385c0-91 50-141 141-141Z"/>
+    <path fill="#FA5672" d="M560 367h192c91 0 141 50 141 141v122c0 91-50 141-141 141h-33l-137 83c-17 10-34-4-23-21l39-62h-38c-91 0-141-50-141-141V508c0-91 50-141 141-141Z"/>
   </g>
-
-  <!-- Porta simples em perspectiva, entreaberta. -->
-  <path fill="#2F3033" d="M434 230 643 139c23-10 36 1 36 24v708c0 23-13 34-36 24L434 805c-17-7-25-22-25-42V274c0-20 8-35 25-44Z"/>
-  <path fill="#FFF9EC" d="M443 255 639 171c7-3 12 0 12 9v672c0 9-5 12-12 9L443 777c-7-3-8-8-8-16V272c0-8 1-14 8-17Z"/>
-  <circle cx="600" cy="615" r="21" fill="#FA5672"/>
-
-  <!-- Pessoa que toma a iniciativa: formas adultas neutras. -->
-  <g fill="#3B2AA4">
-    <circle cx="264" cy="504" r="83"/>
-    <path d="M171 622c23-24 56-37 93-37 55 0 91 22 108 57l15 22c8 11 20 13 30 6l44-47c12-13 27-12 39-1 13 12 13 27 2 40l-61 72c-27 30-62 28-82 5v61c0 26-17 42-42 42H183c-25 0-42-16-42-42v-95c0-34 9-61 30-83Z"/>
+  <text x="512" y="834" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="149" font-weight="700" letter-spacing="-7" fill="#282484">Afinzer</text>
+  <!-- O último ponto substitui o pingo do i: a conversa chega ao nome. -->
+  <rect x="409" y="714" width="44" height="37" fill="#FFF9EC"/>
+  <g fill="#FA5672">
+    <circle cx="507" cy="687" r="10"/>
+    <circle cx="467" cy="711" r="9"/>
+    <circle cx="430" cy="731" r="11"/>
   </g>
 </svg>

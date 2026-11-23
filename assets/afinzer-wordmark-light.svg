@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 350" role="img" aria-label="Afinzer com três balões de conversa coloridos">
+  <title>Afinzer — três conversas, novas conexões</title>
+  <g fill="none" stroke="#AEA9C7" stroke-width="3.5" stroke-linecap="round" opacity=".75">
+    <path d="M276 96C356 70 432 71 508 83"/>
+    <path d="M710 88C798 53 879 72 963 104"/>
+  </g>
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M133 84C133 51 163 35 202 35C241 35 271 54 271 84C271 113 244 131 207 133L175 154L181 130C151 123 133 106 133 84Z" stroke="#FA5A68" stroke-width="11"/>
+    <path d="M502 82C502 35 547 13 609 13C670 13 717 39 717 83C717 127 683 153 626 156L586 184L591 153C536 148 502 122 502 82Z" stroke="#A34EA6" stroke-width="13"/>
+    <path d="M963 102C963 74 992 56 1026 56C1061 56 1089 76 1089 104C1089 132 1065 149 1034 150L1007 169L1012 148C980 143 963 126 963 102Z" stroke="#99D529" stroke-width="11"/>
+  </g>
+  <text x="101" y="333" font-family="DejaVu Sans, Arial, sans-serif" font-size="225" font-weight="600" letter-spacing="-10" fill="#4145D5">Afinzer</text>
+</svg>
