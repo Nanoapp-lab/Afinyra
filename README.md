@@ -1,25 +1,31 @@
-# Afinyra — site institucional (pré-lançamento)
+# Afinzer — site e portal (pré-lançamento)
 
-Arquivos estáticos HTML, CSS e JavaScript do site VibeOrbit, com ícone original do aplicativo Android e crédito “Designed by Zetriv Technologies LTDA”.
+Site oficial em português do **Afinzer**, desenvolvido pela **Zetriv Technologies LTDA**. A identidade visual utiliza o símbolo Afinzer em `assets/afinzer-icon.svg`.
 
-## Publicar no GitHub Pages
+## Organização
 
-1. Descompacte este ZIP no computador. **Não envie o ZIP fechado para o repositório.**
-2. Entre na conta GitHub **Nanoapp-lab** e crie um repositório chamado `vibeorbit-site`.
-3. Acesse o repositório, clique em **Add file → Upload files** e envie os arquivos e a pasta `assets` descompactados, mantendo `index.html` na raiz.
-4. Confirme as alterações em `main`.
-5. Vá em **Settings → Pages → Build and deployment → Deploy from a branch**.
-6. Selecione **main** e **/(root)**, clique em **Save** e aguarde a implantação.
-7. Depois da publicação, o endereço esperado será `https://nanoapp-lab.github.io/Afinyra/`.
+- Repositório GitHub: `Nanoapp-lab/Afinzer`.
+- Projeto Vercel: `afinzer-site`.
+- Branch de produção: `main`. A integração Git da Vercel publica os commits enviados a essa branch.
+- Branches de recursos: utilizadas para prévias e revisão antes da integração à `main`.
+- Páginas: `index.html`, `baixar.html`, `entrar.html`, `conta.html`, `admin.html`, `diretrizes.html`, `privacidade.html` e `exclusao.html`.
 
-Para um domínio próprio, configure **Custom domain** no Pages e só então ajuste o DNS no provedor do domínio; o domínio deve pertencer a você.
+O nome do projeto na Vercel, o endereço `*.vercel.app` e o conteúdo do site são configurações distintas. O endereço anterior pode continuar ativo até que o domínio definitivo seja atribuído e os links externos sejam atualizados.
 
-## Recomendações para o Afinyra comercial
+## Publicação
 
-- O GitHub é ótimo para versionar o código. Para a futura operação comercial, considere hospedar o site na Cloudflare Pages conectado ao repositório GitHub.
-- Este pacote **não** contém dados do Supabase, senhas, chaves secretas, dados biométricos, credenciais Didit, backend ou pagamentos.
-- As páginas de privacidade, diretrizes e exclusão de conta são **rascunhos**. Precisam ser validadas e corresponder aos fluxos reais antes de usar o site como documento oficial da Google Play.
-- As páginas contêm `noindex,nofollow` durante o pré-lançamento: motores de busca não devem indexá-las. Quando estiver pronto para divulgação pública, revise o conteúdo e remova essa diretiva.
-- Não processe dados de usuários nem pagamentos diretamente em GitHub Pages.
+1. Revise a prévia de uma branch e confirme o logotipo, a navegação e as páginas.
+2. Integre a branch revisada à `main` no GitHub.
+3. Confira em **Vercel → afinzer-site → Deployments** se a implantação de **Production** corresponde ao commit da `main`.
+4. Teste o endereço de produção, incluindo a página inicial, acesso à conta e páginas de transparência.
+5. Em **Settings → Domains**, configure o novo domínio quando estiver disponível. Preserve o endereço anterior enquanto houver usuários ou links que dependam dele.
 
-Projeto: Afinyra• Designed by Zetriv Technologies LTDA.
+## Segurança e lançamento
+
+- O portal usa Supabase Auth e moderação. A operação depende de políticas RLS e da função administrativa instalada no servidor.
+- Nomes técnicos anteriores, como `vibeorbit-moderacao` e a chave local de sessão, permanecem por compatibilidade; **não** são a marca apresentada ao público.
+- Nunca publique chaves `service_role`, credenciais de administrador ou dados pessoais no repositório.
+- As páginas de privacidade, diretrizes e exclusão ainda contêm avisos de prévia e precisam corresponder aos procedimentos reais antes da publicação na Google Play.
+- A indexação e as políticas devem ser revisadas antes do lançamento público.
+
+© Afinzer — Designed by Zetriv Technologies LTDA.

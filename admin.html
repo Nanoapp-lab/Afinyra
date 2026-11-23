@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100a1b"><meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://bzjwgvnyfunlwxfzbbbc.supabase.co; img-src 'self' data: https://bzjwgvnyfunlwxfzbbbc.supabase.co; object-src 'none'; base-uri 'self'">
+  <meta name="referrer" content="no-referrer"><title>Central de Moderação | Afinzer</title>
+  <link rel="icon" href="assets/afinzer-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="portal.css"><script type="module" src="portal.js"></script>
+</head>
+<body data-portal-page="admin"><header class="header shell"><a class="brand" href="index.html"><img class="brand-logo" src="assets/afinzer-icon.svg" alt="" width="43" height="43"><span>Afin<span class="brand-accent">zer</span></span></a><a href="conta.html">← Minha conta</a></header>
+  <main class="shell portal-layout"><div class="portal-heading"><span class="section-kicker">ZETRIV TECHNOLOGIES LTDA</span><h1>Central de Moderação</h1><p>Denúncias do Afinzer. Acesso restrito a administradores autorizados.</p></div>
+    <section class="portal-card wide" aria-labelledby="moderation-title"><h2 id="moderation-title">Fila de denúncias</h2><p id="portal-message" role="status" aria-live="polite">Verificando sua autorização...</p>
+      <div id="admin-content" hidden>
+        <div class="portal-actions"><span class="portal-pill ready">● Acesso administrativo</span><button type="button" class="portal-button secondary" id="refresh-reports">Atualizar denúncias</button><button type="button" class="portal-button secondary" id="logout">Sair</button></div>
+        <div class="portal-grid" aria-label="Resumo da fila"><div class="portal-stat"><strong id="total-count">—</strong><span>Total consultado</span></div><div class="portal-stat"><strong id="pending-count">—</strong><span>Pendentes</span></div><div class="portal-stat"><strong id="review-count">—</strong><span>Em análise</span></div></div>
+        <p class="portal-subtle">As medidas administrativas são registradas com justificativa e histórico. Suspensões e banimentos precisam ser confirmados por você e podem ser revertidos. Denúncias e evidências não são apagadas automaticamente.</p>
+        <h2 class="portal-history-title">Contas com restrições</h2>
+        <div id="restriction-list" class="report-list" aria-live="polite">Carregando restrições...</div>
+        <h2 class="portal-history-title">Denúncias recebidas</h2>
+        <div id="report-list" class="report-list" aria-live="polite"></div>
+        <h2 class="portal-history-title">Histórico das decisões</h2><div id="audit-list" class="portal-subtle">Carregando histórico...</div>
+        <h2 class="portal-history-title">Histórico de medidas administrativas</h2><div id="sanction-history" class="portal-subtle">Carregando medidas...</div>
+      </div>
+    </section>
+  </main><footer class="footer"><div class="shell footer-bottom"><span>Área administrativa privada • Não compartilhar credenciais</span><span class="design-credit">Designed by <strong>Zetriv Technologies LTDA</strong></span></div></footer>
+</body></html>

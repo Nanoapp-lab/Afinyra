@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Afinzer: duas pessoas em uma conversa">
+  <defs>
+    <linearGradient id="afinzer" x1="190" y1="180" x2="860" y2="815" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#97F8D0" />
+      <stop offset="0.55" stop-color="#44DEBE" />
+      <stop offset="1" stop-color="#31B6CD" />
+    </linearGradient>
+  </defs>
+  <!-- Balão de conversa: aproximação pela palavra, não pela aparência. -->
+  <path fill="url(#afinzer)" d="M295 203h435c92 0 150 58 150 148v266c0 90-58 148-150 148h-29l-109 91c-20 16-48 2-48-24v-67H295c-92 0-151-58-151-148V351c0-90 59-148 151-148Z"/>
+  <!-- Duas figuras simétricas, sem atributos de gênero. -->
+  <g fill="#151126">
+    <circle cx="400" cy="417" r="65"/>
+    <circle cx="625" cy="417" r="65"/>
+    <path d="M270 639c0-82 53-131 130-131s130 49 130 131v25H270v-25Z"/>
+    <path d="M495 639c0-82 53-131 130-131s130 49 130 131v25H495v-25Z"/>
+  </g>
+  <path d="M505 578v85" stroke="#3AC9BE" stroke-width="17" stroke-linecap="round"/>
+</svg>
