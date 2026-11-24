@@ -31,6 +31,11 @@ create table if not exists public.moderacao_avisos (
 create index if not exists moderacao_avisos_usuario_data_idx
   on public.moderacao_avisos(usuario_id, criado_em desc);
 
+-- Evita disparar novamente a mesma conclusão, inclusive após recarregar painel.
+create unique index if not exists moderacao_avisos_decisao_unica_idx
+  on public.moderacao_avisos(origem, denuncia_id, medida)
+  where tipo = 'decisao';
+
 alter table public.moderacao_avisos enable row level security;
 revoke all on table public.moderacao_avisos from public, anon, authenticated;
 grant select on table public.moderacao_avisos to authenticated;
@@ -58,8 +63,14 @@ declare
   v_motivo text := btrim(coalesce(new.motivo_publico, ''));
   v_justificativa text := btrim(coalesce(new.justificativa_publica, ''));
 begin
-  if new.status is not distinct from old.status or
-     new.status not in ('resolvida','descartada') then
+  if new.status not in ('resolvida','descartada') then
+    return new;
+  end if;
+  -- Permite notificar denúncias que já estavam resolvidas ANTES da V28:
+  -- o primeiro preenchimento da justificativa pública gera o aviso.
+  -- Depois, regravar a mesma decisão não reenvia o comunicado.
+  if new.status is not distinct from old.status and
+     nullif(btrim(coalesce(old.justificativa_publica, '')), '') is not null then
     return new;
   end if;
   if char_length(v_motivo) not between 5 and 200 or
@@ -80,7 +91,8 @@ begin
     (v_usuario,v_origem,new.id,'decisao',
      case when new.status = 'resolvida' then 'Análise concluída'
           else 'Denúncia arquivada sem medida' end,
-     v_motivo,v_justificativa);
+     v_motivo,v_justificativa)
+  on conflict do nothing;
   return new;
 end;
 $$;
