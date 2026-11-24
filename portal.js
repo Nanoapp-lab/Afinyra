@@ -341,9 +341,9 @@ async function saveDecision(item, select, note, publicReason, publicExplanation,
       })
     });
     if (!Array.isArray(updated) || updated.length !== 1) throw new Error('Sem autorização para alterar');
-    feedback.textContent = ['resolvida','descartada'].includes(newStatus) && newStatus !== item.status ?
-      'Decisão registrada. Um comunicado privado foi salvo, sem o nome do denunciante.' :
-      'Alterações registradas. O aviso é gerado apenas quando o status muda para concluído/descartado.';
+    feedback.textContent = ['resolvida','descartada'].includes(newStatus) ?
+      'Decisão registrada. O primeiro comunicado desta conclusão é salvo para a pessoa, sem o nome do denunciante.' :
+      'Andamento interno registrado, sem enviar comunicado.';
     await loadReports();
   } catch {
     feedback.textContent = 'Não foi possível registrar. Verifique a sessão e tente novamente.';
