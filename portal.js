@@ -128,6 +128,14 @@ async function initAccount() {
     setMessage('Sessão autenticada.');
     try { element('admin-link').hidden = !(await isAdmin()); }
     catch { element('admin-link').hidden = true; }
+    try {
+      const { initProfile } = await import('./perfil.js');
+      await initProfile({ authenticated, getToken, user, apiBase: API_BASE, publicKey: PUBLIC_KEY });
+    } catch {
+      element('profile-panel').hidden = false;
+      element('profile-submit').disabled = true;
+      element('profile-status').textContent = 'Não foi possível abrir o editor. Recarregue a página para tentar novamente.';
+    }
   } catch { redirectToLogin(); }
 }
 
