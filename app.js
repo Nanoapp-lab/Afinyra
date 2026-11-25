@@ -1,9 +1,10 @@
 // Area interna do Afinzer. Somente a chave publica fica no navegador;
 // autorizacao, plano e tempo de uso sao confirmados no servidor.
 import { initDiscoveries } from './deck-conexoes.js';
+import { initBlindConversations } from './conversa-cegas.js';
 import { formatBirthDateBR, formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 const $ = id => document.getElementById(id);
-const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat']);
+const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas']);
 let api;
 let userProfile = null;
 let isPremium = false;
@@ -16,10 +17,16 @@ let chatSending = false;
 let leavingChat = Promise.resolve();
 let currentView = 'inicio';
 let discoveries = null;
+let blindFeature = null;
 let previewPlan = 'real';
 let allRooms = [];
 let roomFilter = 'todas';
 let roomSearch = '';
+const ROOMS_PAGE_SIZE = 15;
+let roomsPage = 1;
+let roomsHasNext = false;
+let roomsRequest = 0;
+let roomSearchTimer = null;
 let nameColors = new Map();
 let lastColorSync = 0;
 let changingNameColor = false;
@@ -159,6 +166,7 @@ function renderOwnProfile() {
 }
 function showView(view) {
   if (!sections.has(view)) view = 'inicio';
+  if (currentView === 'cegas' && view !== 'cegas') void blindFeature?.exit();
   if (activeChat && view !== 'chat') void leaveChat();
   currentView = view;
   document.querySelectorAll('[data-panel]').forEach(node => {
@@ -171,6 +179,7 @@ function showView(view) {
   if (view === 'salas') void loadRooms();
   if (view === 'deck') void discoveries?.openDeck();
   if (view === 'conexoes') void discoveries?.openConnections();
+  if (view === 'cegas') void blindFeature?.enter();
   if (view !== 'chat') history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -226,24 +235,27 @@ function updatePlanPresentation() {
   $('rooms-plan-note').textContent = visualPremium()
     ? '👑 Premium: Chat Global e salas ilimitados.'
     : '♡ Free: 30 min/dia compartilhados entre o Chat Global e as salas por assunto. Salas por cidade são Premium.';
+  $('rooms-create-note').textContent = !planVerified
+    ? 'Não foi possível conferir sua assinatura. Recarregue para tentar criar uma sala.'
+    : isPremium ? 'Sua conta Premium pode criar uma sala. As novas salas aparecem também no Android.'
+      : 'Criar salas requer Premium ativo de verdade. A opção de prévia não altera sua assinatura.';
   if (currentView === 'salas') renderRooms();
 }
 
 function appendRoom(room) {
   const card = make('article', 'room-card');
   const byCity = Boolean(room.cidade?.trim());
-  card.append(make('span', 'room-kind', byCity ? '📍 POR CIDADE' : '💬 POR ASSUNTO'));
-  card.append(make('h2', null, room.nome || 'Sala sem nome'));
-  if (byCity) card.append(make('p', 'room-subject', room.cidade.trim()));
-  else if (room.assunto && room.assunto !== room.nome) card.append(make('p', 'room-subject', room.assunto));
-  card.append(make('p', 'room-info', byCity
-    ? 'Conheça pessoas desta cidade e compartilhe histórias.'
-    : 'Um espaço para conversar sobre o que vocês gostam.'));
+  const info = make('div', 'room-main');
+  info.append(make('span', 'room-kind', byCity ? '📍 CIDADE' : '💬 ASSUNTO'));
+  info.append(make('h2', null, room.nome || 'Sala sem nome'));
+  if (byCity) info.append(make('p', 'room-subject', room.cidade.trim()));
+  else if (room.assunto && room.assunto !== room.nome) info.append(make('p', 'room-subject', room.assunto));
+  card.append(info);
   const actions = make('div', 'room-actions');
   const subject = isSubjectRoom(room);
   const canEnter = planVerified && (isPremium || subject);
-  const label = !subject ? '👑 Sala por cidade · Premium'
-    : isPremium ? '👑 Premium · ilimitado' : '♡ Free · usa os mesmos 30 min do Global';
+  const label = !subject ? '👑 Premium'
+    : isPremium ? '👑 Ilimitado' : '♡ 30 min compartilhados';
   actions.append(make('span', 'lock-label', label));
   if (canEnter) {
     const enter = make('button', 'primary-action', 'Entrar na sala');
@@ -279,30 +291,42 @@ function renderRooms() {
     return matchesCategory && matchesText;
   });
   $('rooms-list').replaceChildren();
-  $('rooms-count').textContent = `${rows.length} sala(s) encontrada(s)`;
+  $('rooms-count').textContent = `${rows.length} sala(s) nesta página${roomsHasNext ? ' · há mais salas' : ''}`;
+  $('rooms-page-status').textContent = `Página ${roomsPage}`;
+  $('rooms-previous').disabled = roomsPage <= 1;
+  $('rooms-next').disabled = !roomsHasNext;
   document.querySelectorAll('[data-room-filter]').forEach(button => {
     const active = button.dataset.roomFilter === roomFilter;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
   if (!rows.length) {
-    $('rooms-list').append(make('p', 'room-empty', allRooms.length
-      ? 'Nenhuma sala encontrada neste filtro. Experimente outra busca.'
-      : 'Ainda não há salas disponíveis.'));
+    $('rooms-list').append(make('p', 'room-empty', roomsPage > 1
+      ? 'Nenhuma sala nesta página. Volte para a anterior.'
+      : 'Nenhuma sala encontrada. Experimente outro assunto ou cidade.'));
     return;
   }
   rows.forEach(appendRoom);
 }
 async function loadRooms() {
+  const thisRequest = ++roomsRequest;
   friendly('Carregando salas…', false, 'rooms-feedback');
   try {
-    const rows = await api.authenticated('/rest/v1/salas?select=id,nome,assunto,cidade,criador_id&order=created_at.desc&limit=100');
-    if (currentView !== 'salas') return;
+    const params = new URLSearchParams({ select: 'id,nome,assunto,cidade,criador_id', order: 'created_at.desc', limit: String(ROOMS_PAGE_SIZE + 1), offset: String((roomsPage - 1) * ROOMS_PAGE_SIZE) });
+    if (roomFilter === 'cidade') params.set('id', 'like.public:cidade_*');
+    if (roomFilter === 'assunto') params.set('id', 'like.public:assunto_*');
+    if (roomFilter === 'minhas') params.set('criador_id', `eq.${api.user.id}`);
+    const search = roomSearch.trim().replace(/[(),.%*]/g, ' ').trim().slice(0, 70);
+    if (search) params.set('or', `(nome.ilike.*${search}*,assunto.ilike.*${search}*,cidade.ilike.*${search}*)`);
+    const rows = await api.authenticated(`/rest/v1/salas?${params}`);
+    if (currentView !== 'salas' || thisRequest !== roomsRequest) return;
     if (!Array.isArray(rows)) throw new Error('Consulta de salas incompleta');
-    allRooms = rows;
+    roomsHasNext = rows.length > ROOMS_PAGE_SIZE;
+    allRooms = rows.slice(0, ROOMS_PAGE_SIZE);
     friendly('', false, 'rooms-feedback');
     renderRooms();
   } catch {
+    if (thisRequest !== roomsRequest) return;
     friendly('Não foi possível carregar as salas. Tente novamente ao voltar para esta tela.', true, 'rooms-feedback');
   }
 }
@@ -336,8 +360,12 @@ async function createRoom(event) {
     $('create-room-form').reset();
     friendly('Sala criada! Ela também aparecerá no aplicativo.', false, 'rooms-feedback');
     await loadRooms();
-  } catch {
-    feedback.textContent = 'Não foi possível confirmar a criação da sala. Tente novamente.';
+  } catch (error) {
+    feedback.textContent = /duplicate|unique/i.test(error?.message || '')
+      ? 'Já existe uma sala com esses dados. Tente outro nome.'
+      : /permission|policy|premium|denied/i.test(error?.message || '')
+        ? 'O Supabase não autorizou a criação. Confira se seu Premium está ativo.'
+        : 'Não foi possível confirmar a criação da sala. Verifique a conexão e tente novamente.';
   } finally {
     button.disabled = false;
   }
@@ -602,10 +630,33 @@ export async function initWebApp(context) {
   });
   $('open-global').addEventListener('click', () => void openChat({ id: 'Global', name: 'Chat Global', origin: 'conversas' }));
   $('rooms-global').addEventListener('click', () => void openChat({ id: 'Global', name: 'Chat Global', origin: 'salas' }));
-  $('rooms-search').addEventListener('input', event => { roomSearch = event.target.value; renderRooms(); });
-  document.querySelectorAll('[data-room-filter]').forEach(button => {
-    button.addEventListener('click', () => { roomFilter = button.dataset.roomFilter; renderRooms(); });
+  const openBlind = () => {
+    if (!planVerified || !isPremium) {
+      friendly('🎭 Conversa às Cegas é exclusiva do Premium real. A prévia de Premium não libera este recurso.', true);
+      if (currentView === 'salas') friendly('🎭 Conversa às Cegas exige Premium real.', true, 'rooms-feedback');
+      return;
+    }
+    showView('cegas');
+  };
+  $('rooms-blind').addEventListener('click', openBlind);
+  $('conversas-blind').addEventListener('click', openBlind);
+  $('rooms-search').addEventListener('input', event => {
+    roomSearch = event.target.value;
+    roomsPage = 1;
+    renderRooms();
+    clearTimeout(roomSearchTimer);
+    roomSearchTimer = setTimeout(() => { if (currentView === 'salas') void loadRooms(); }, 350);
   });
+  document.querySelectorAll('[data-room-filter]').forEach(button => {
+    button.addEventListener('click', () => {
+      roomFilter = button.dataset.roomFilter;
+      roomsPage = 1;
+      renderRooms();
+      void loadRooms();
+    });
+  });
+  $('rooms-previous').addEventListener('click', () => { if (roomsPage > 1) { roomsPage--; void loadRooms(); } });
+  $('rooms-next').addEventListener('click', () => { if (roomsHasNext) { roomsPage++; void loadRooms(); } });
   $('rooms-create').addEventListener('click', () => {
     if (!planVerified || !isPremium) {
       friendly('Criar salas exige uma conta Premium ativa. A simulação visual não libera criação.', false, 'rooms-feedback');
@@ -635,6 +686,7 @@ export async function initWebApp(context) {
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
   discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium });
+  blindFeature = initBlindConversations({ $, rpc, api, getAccess: () => planVerified && isPremium, restriction, leaveView: () => showView('salas') });
   friendly('');
   const start = location.hash.slice(1);
   showView(start !== 'chat' && sections.has(start) ? start : 'inicio');
