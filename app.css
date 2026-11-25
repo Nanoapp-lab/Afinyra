@@ -11,6 +11,7 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 .plan-pill{font-size:.85rem;color:#f1d7ff;padding:8px 14px;border:1px solid #9a5bb1;border-radius:22px;background:#51266888;white-space:nowrap}
 .real-plan-pill{font-size:.8rem;font-weight:750;color:#e9dbf4;padding:8px 12px;border:1px solid #6f567c;border-radius:22px;background:#24172e;white-space:nowrap}
 .plan-preview-control{display:flex;flex-direction:column;gap:4px;color:#d4aee6;font-size:.69rem;font-weight:850;letter-spacing:.03em}
+.plan-preview-control[hidden]{display:none}
 .plan-preview-control select{border:1px solid #8f5ba7;border-radius:11px;background:#321e42;color:#f9e9ff;font-size:.84rem;font-weight:700;padding:8px 11px;min-width:152px;cursor:pointer}
 .plan-preview-control select:focus-visible{outline:3px solid #d59aff;outline-offset:2px}
 .preview-plan-note{border:1px solid #a7794a;background:#45311f;color:#f4dfa8;border-radius:12px;padding:12px 15px;margin:0 0 22px;font-weight:700;font-size:.88rem;line-height:1.5;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
