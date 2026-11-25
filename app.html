@@ -100,8 +100,25 @@
           <div class="conversation-actions">
             <button type="button" id="open-global" class="primary-action">Entrar no Chat Global</button>
             <button type="button" id="conversas-blind" class="outline-action">🎭 Conversa às Cegas · Premium</button>
-            <span class="muted-note">Mensagens privadas diretas ainda estão sendo alinhadas ao aplicativo Android.</span>
           </div>
+          <div class="direct-inbox">
+            <div class="direct-inbox-title"><div><p class="overline">EXCLUSIVO PREMIUM</p><h2>💬 Minhas conversas privadas</h2></div><button type="button" id="direct-refresh" class="outline-action">Atualizar conversas</button></div>
+            <p id="direct-inbox-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            <div id="direct-inbox-list" class="direct-inbox-list"></div>
+          </div>
+        </section>
+
+        <section class="view" data-panel="direta" aria-labelledby="direct-title" hidden>
+          <div class="chat-topbar"><button type="button" id="direct-back" class="back-button">← Voltar</button><span class="direct-premium-label">👑 Conversa privada · Premium</span></div>
+          <div class="chat-heading"><div><p class="overline">MENSAGENS DIRETAS</p><h1 id="direct-title">Conversa privada</h1></div><span id="direct-status" class="chat-time">Conectando…</span></div>
+          <p id="direct-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
+          <div id="direct-messages" class="chat-messages" role="log" aria-label="Mensagens privadas"></div>
+          <form id="direct-form" class="chat-form">
+            <label for="direct-input" class="sr-only">Mensagem privada</label>
+            <textarea id="direct-input" rows="2" maxlength="1000" placeholder="Escreva uma mensagem para esta pessoa…" disabled required></textarea>
+            <button type="submit" id="direct-send" class="primary-action" disabled>Enviar</button>
+          </form>
+          <p class="chat-keyboard-hint">Enter envia · Shift+Enter pula uma linha. A pessoa poderá ler e responder pelo site ou aplicativo.</p>
         </section>
 
         <section class="view" data-panel="salas" aria-labelledby="rooms-title" hidden>
