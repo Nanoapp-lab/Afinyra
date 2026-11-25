@@ -31,7 +31,8 @@ function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 async function http(path, options = {}, token = null) {
   const headers = { apikey: PUBLIC_KEY, Accept: 'application/json', ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (options.body) headers['Content-Type'] = 'application/json';
+  // JSON para a API de dados; fotos do mural usam o MIME binario original.
+  if (options.body && !('Content-Type' in headers)) headers['Content-Type'] = 'application/json';
   const response = await fetch(`${API_BASE}${path}`, {
     ...options, headers, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'
   });
