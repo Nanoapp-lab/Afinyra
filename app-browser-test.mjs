@@ -30,6 +30,7 @@ await page.route('https://bzjwgvnyfunlwxfzbbbc.supabase.co/**', async route => {
   const ok = body => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' }, body: JSON.stringify(body) });
   if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST', 'access-control-allow-headers': '*' } });
   if (url.pathname === '/auth/v1/user') return ok({ id: 'person-one', email: 'usuario@example.test' });
+  if (url.pathname.endsWith('/rpc/moderacao_eh_admin')) return ok(false);
   if (url.pathname.endsWith('/rpc/meu_premium_ativo')) return ok(premium);
   if (url.pathname.endsWith('/rpc/meu_plano_teste')) return ok({ autorizado: true, modo: testMode,
     premium_real: false, premium_efetivo: premium });
@@ -57,9 +58,19 @@ await page.route('https://bzjwgvnyfunlwxfzbbbc.supabase.co/**', async route => {
 function ensure(condition, label) { if (!condition) throw new Error('FALHOU: ' + label); console.log('OK: ' + label); }
 try {
   await page.goto(origin + '/entrar.html');
+  await page.locator('#entry-choices').waitFor();
+  ensure(await page.locator('#entry-choices').isVisible(), 'entrada inicial permite escolher usuario ou moderador');
+  ensure(await page.locator('#login-card').isHidden(), 'formulario de login so aparece apos escolher entrada');
+  await page.locator('a[href="entrar.html?destino=moderacao"]').click();
+  await page.locator('#login-card').waitFor();
+  await page.locator('#portal-message').getByText(/não é moderadora/).waitFor();
+  ensure(!page.url().includes('/admin.html'), 'conta comum nao abre moderação');
+  await page.locator('a.portal-back').click();
+  await page.locator('a[href="entrar.html?destino=app"]').click();
   await page.waitForURL('**/app.html');
   await page.locator('#home-title').waitFor();
-  ensure(page.url().includes('/app.html'), 'sessão existente abre área interna sem login');
+  ensure(page.url().includes('/app.html'), 'escolha de usuario comum abre area interna com a sessao existente');
+  ensure(await page.locator('[data-panel="deck"]').isVisible(), 'usuario comum abre diretamente o Deck');
   await page.locator('[data-view="conversas"].nav-item').click();
   await page.locator('#open-global').click();
   await page.locator('.chat-bubble').first().waitFor();
