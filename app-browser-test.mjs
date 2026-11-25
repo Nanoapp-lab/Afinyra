@@ -57,19 +57,15 @@ await page.route('https://bzjwgvnyfunlwxfzbbbc.supabase.co/**', async route => {
 
 function ensure(condition, label) { if (!condition) throw new Error('FALHOU: ' + label); console.log('OK: ' + label); }
 try {
+  const guestPage = await browser.newPage();
+  await guestPage.goto(origin + '/entrar.html');
+  ensure(await guestPage.locator('#login-card').isVisible(), 'login comum mostra e-mail e senha antes de qualquer escolha');
+  ensure(await guestPage.locator('#entry-choices').isHidden(), 'moderação não aparece para visitantes');
+  await guestPage.close();
   await page.goto(origin + '/entrar.html');
-  await page.locator('#entry-choices').waitFor();
-  ensure(await page.locator('#entry-choices').isVisible(), 'entrada inicial permite escolher usuario ou moderador');
-  ensure(await page.locator('#login-card').isHidden(), 'formulario de login so aparece apos escolher entrada');
-  await page.locator('a[href="entrar.html?destino=moderacao"]').click();
-  await page.locator('#login-card').waitFor();
-  await page.locator('#portal-message').getByText(/não é moderadora/).waitFor();
-  ensure(!page.url().includes('/admin.html'), 'conta comum nao abre moderação');
-  await page.locator('a.portal-back').click();
-  await page.locator('a[href="entrar.html?destino=app"]').click();
   await page.waitForURL('**/app.html');
   await page.locator('#home-title').waitFor();
-  ensure(page.url().includes('/app.html'), 'escolha de usuario comum abre area interna com a sessao existente');
+  ensure(page.url().includes('/app.html'), 'sessão comum abre diretamente o Afinzer');
   ensure(await page.locator('[data-panel="deck"]').isVisible(), 'usuario comum abre diretamente o Deck');
   await page.locator('[data-view="conversas"].nav-item').click();
   await page.locator('#open-global').click();
