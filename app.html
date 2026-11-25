@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100a1b">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://bzjwgvnyfunlwxfzbbbc.supabase.co; img-src 'self' data: https://bzjwgvnyfunlwxfzbbbc.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Afinzer — Minha área</title>
+  <link rel="icon" type="image/svg+xml" href="assets/afinzer-icon.svg">
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="portal.js"></script>
+</head>
+<body data-portal-page="app">
+  <div class="app-frame" id="app-frame">
+    <header class="app-header">
+      <button type="button" id="app-home" class="app-brand" aria-label="Página inicial do Afinzer">
+        <img src="assets/afinzer-wordmark.svg" width="166" height="55" alt="Afinzer">
+      </button>
+      <div class="header-actions">
+        <span id="plan-pill" class="plan-pill">Verificando plano…</span>
+        <a class="header-profile" href="conta.html">Editar perfil</a>
+        <button type="button" id="logout" class="quiet-button">Sair</button>
+      </div>
+    </header>
+
+    <div class="app-layout">
+      <nav class="app-nav" id="app-nav" aria-label="Navegação do Afinzer">
+        <button type="button" class="nav-item" data-view="deck" aria-pressed="false"><span aria-hidden="true">▣</span> Deck</button>
+        <button type="button" class="nav-item" data-view="conexoes" aria-pressed="false"><span aria-hidden="true">♡</span> Conexões</button>
+        <button type="button" class="nav-item" data-view="conversas" aria-pressed="false"><span aria-hidden="true">▤</span> Conversas</button>
+        <button type="button" class="nav-item" data-view="salas" aria-pressed="false"><span aria-hidden="true">◫</span> Salas</button>
+        <button type="button" class="nav-item" data-view="perfil" aria-pressed="false"><span aria-hidden="true">♙</span> Perfil</button>
+      </nav>
+
+      <main id="main-content" class="app-content">
+        <p id="app-feedback" class="app-feedback" role="status" aria-live="polite">Verificando sua conta…</p>
+
+        <section class="view" data-panel="inicio" aria-labelledby="home-title">
+          <p class="overline">AFINZER WEB</p>
+          <h1 id="home-title">Sua próxima conversa começa aqui.</h1>
+          <p id="welcome-text" class="lead">Um lugar para descobrir afinidades com calma.</p>
+          <div class="home-feature-grid">
+            <button type="button" class="feature-link feature-main" data-view="conversas">
+              <span class="feature-icon" aria-hidden="true">💬</span><span class="feature-title">Chat Global</span>
+              <span class="feature-text">Entre no papo com quem também está por aqui.</span><span class="feature-foot">Abrir conversa</span>
+            </button>
+            <button type="button" class="feature-link" data-view="salas">
+              <span class="feature-icon" aria-hidden="true">✨</span><span class="feature-title">Salas por assunto</span>
+              <span class="feature-text">Escolha uma sala que combine com você.</span><span class="feature-foot">Ver salas</span>
+            </button>
+            <button type="button" class="feature-link" data-view="perfil">
+              <span class="feature-icon" aria-hidden="true">👤</span><span class="feature-title">Meu perfil</span>
+              <span class="feature-text">Suas fotos, sua história e o que você procura.</span><span class="feature-foot">Ver perfil</span>
+            </button>
+          </div>
+          <div class="home-note" id="home-plan-info">Free: 30 minutos gratuitos por dia no Chat Global. Premium: chats e salas ilimitados.</div>
+        </section>
+
+        <section class="view" data-panel="deck" aria-labelledby="deck-title" hidden>
+          <p class="overline">DESCOBERTAS</p><h1 id="deck-title">Deck de perfis</h1>
+          <div class="soft-card"><span class="section-symbol">🃏</span><h2>Perfis com mais afinidade</h2>
+            <p>A navegação do Deck será a próxima integração com o Android. Ainda não habilitamos gestos ou curtidas aqui para evitar registrar uma ação errada.</p>
+            <button type="button" class="outline-action" data-view="conversas">Enquanto isso, entrar no Chat Global</button>
+          </div>
+        </section>
+
+        <section class="view" data-panel="conexoes" aria-labelledby="connections-title" hidden>
+          <p class="overline">SUAS CONEXÕES</p><h1 id="connections-title">Pessoas que despertam interesse</h1>
+          <div class="soft-card"><span class="section-symbol">💜</span><h2>Curtidas recebidas, enviadas e recíprocas</h2>
+            <p>Essa área ainda está sendo adaptada para usar as mesmas regras de privacidade do aplicativo. As curtidas existentes permanecem intactas.</p>
+            <button type="button" class="outline-action" data-view="conversas">Ir para conversas</button>
+          </div>
+        </section>
+
+        <section class="view" data-panel="conversas" aria-labelledby="conversations-title" hidden>
+          <p class="overline">CONVERSE COM CALMA</p><h1 id="conversations-title">Conversas</h1>
+          <p class="lead">O Chat Global usa as mesmas mensagens do aplicativo Android.</p>
+          <div class="conversation-actions">
+            <button type="button" id="open-global" class="primary-action">Entrar no Chat Global</button>
+            <span class="muted-note">Mensagens privadas e Conversa às Cegas serão integradas nas próximas etapas.</span>
+          </div>
+        </section>
+
+        <section class="view" data-panel="salas" aria-labelledby="rooms-title" hidden>
+          <p class="overline">ESCOLHA SEU ASSUNTO</p><h1 id="rooms-title">Salas para conversar</h1>
+          <p class="lead">As salas são carregadas do mesmo servidor usado no aplicativo.</p>
+          <p id="rooms-feedback" class="muted-note" role="status" aria-live="polite">Carregando salas…</p>
+          <div id="rooms-list" class="rooms-list"></div>
+        </section>
+
+        <section class="view" data-panel="perfil" aria-labelledby="profile-title" hidden>
+          <p class="overline">SUA HISTÓRIA</p><h1 id="profile-title">Meu perfil</h1>
+          <div class="profile-card"><div class="profile-avatar" id="profile-avatar" aria-hidden="true">♡</div>
+            <div class="profile-copy"><h2 id="profile-name">Seu perfil Afinzer</h2><p id="profile-city">Carregando dados…</p>
+              <a href="conta.html" class="primary-action profile-edit">Editar meus dados e fotos</a></div>
+          </div>
+          <div class="home-note">O perfil que você salvar na web também será usado pelo aplicativo Android.</div>
+        </section>
+
+        <section class="view" data-panel="chat" aria-labelledby="chat-title" hidden>
+          <button type="button" id="chat-back" class="back-button">← Voltar</button>
+          <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><span id="chat-time" class="chat-time">Conferindo acesso…</span></div>
+          <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
+          <div id="chat-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa"></div>
+          <form id="chat-form" class="chat-form"><label for="chat-input" class="sr-only">Escreva sua mensagem</label>
+            <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" disabled required></textarea>
+            <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
+          </form>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
