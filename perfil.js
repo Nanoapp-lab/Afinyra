@@ -1,6 +1,6 @@
 import {
   formatBirthDateBR, formatHeightCm, maskBirthDateBR, parseAdultBirthDate,
-  parseHeightCm, parseList, profilePhotos, safePhotoUrl
+  parseHeightCm, parseList, profilePhotos, normalizePhotoSlots, safePhotoUrl
 } from './perfil-utils.mjs';
 import { configureProfileOptions } from './perfil-opcoes.mjs';
 import { configureCitySelectors } from './perfil-cidades.mjs';
@@ -46,6 +46,13 @@ function setField(form, key, value) {
   const field = form.elements.namedItem(key);
   if (field) field.value = value == null ? '' : String(value);
 }
+function friendlyError(error, fallback = 'Não foi possível salvar. Tente novamente.') {
+  const message = String(error?.message || '');
+  if (/violates .* constraint|new row for relation|PGRST\d+/i.test(message)) {
+    return 'Não foi possível salvar os dados. Recarregue a página e tente novamente.';
+  }
+  return message || fallback;
+}
 
 export async function initProfile({ authenticated, getToken, user, apiBase, publicKey }) {
   const form = byId('profile-form');
@@ -54,7 +61,7 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
   const photoHint = byId('photo-hint');
   const photoLabel = document.querySelector('.photo-upload-label');
   const submit = byId('profile-submit');
-  const state = { exists: false, photos: [], savingPhotos: false };
+  const state = { exists: false, photos: normalizePhotoSlots(), savingPhotos: false };
   const options = configureProfileOptions(form);
 
   function photoStatus(message, error = false) {
@@ -64,13 +71,14 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
   }
 
   async function saveGallery(nextPhotos) {
-    const safe = nextPhotos.filter(url => safePhotoUrl(url)).slice(0, 6);
+    const slots = normalizePhotoSlots(nextPhotos);
+    const principal = slots.find(Boolean) || null;
     const data = await authenticated(`/rest/v1/usuarios?id=eq.${encodeURIComponent(user.id)}&select=id,foto_url,fotos_perfil`, {
       method: 'PATCH', headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ foto_url: safe[0] || null, fotos_perfil: safe })
+      body: JSON.stringify({ foto_url: principal, fotos_perfil: slots })
     });
     if (!Array.isArray(data) || data.length !== 1) throw new Error('Não foi possível atualizar as fotos do perfil.');
-    state.photos = safe;
+    state.photos = slots;
     renderGallery();
   }
 
@@ -90,12 +98,20 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
 
   function renderGallery() {
     gallery.replaceChildren();
+    const principalIndex = state.photos.findIndex(Boolean);
     for (let i = 0; i < 6; i += 1) {
       const url = state.photos[i];
       const card = document.createElement('article');
-      card.className = `photo-slot${i === 0 && url ? ' primary' : ''}`;
+      card.className = `photo-slot${i === principalIndex && url ? ' primary' : ''}`;
       if (url) {
-        card.append(showImage(url, `Foto ${i + 1} do seu perfil`));
+        const photo = safePhotoUrl(url);
+        if (photo) card.append(showImage(photo, `Foto ${i + 1} do seu perfil`));
+        else {
+          const unavailable = document.createElement('span');
+          unavailable.className = 'photo-placeholder';
+          unavailable.textContent = 'Foto cadastrada no aplicativo, sem prévia disponível aqui';
+          card.append(unavailable);
+        }
         const actions = document.createElement('div');
         actions.className = 'photo-slot-actions';
         if (i > 0) actions.append(createButton('Principal', 'photo-small-button', async () => {
@@ -109,18 +125,20 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
             await saveGallery(next);
             photoStatus('Foto principal atualizada.');
           } catch { photoStatus('Não foi possível mudar a foto principal.', true); }
-          finally { state.savingPhotos = false; }
+          finally { state.savingPhotos = false; renderGallery(); }
         }));
         actions.append(createButton('Remover', 'photo-small-button remove', async () => {
           if (state.savingPhotos || !window.confirm('Remover esta foto do seu perfil?')) return;
           state.savingPhotos = true;
           status('Removendo foto...');
           try {
-            await saveGallery(state.photos.filter((_, index) => index !== i));
+            const next = [...state.photos];
+            next[i] = null;
+            await saveGallery(next);
             await deleteOldUpload(url).catch(() => {});
             photoStatus('Foto removida do perfil.');
           } catch { photoStatus('Não foi possível remover a foto.', true); }
-          finally { state.savingPhotos = false; }
+          finally { state.savingPhotos = false; renderGallery(); }
         }));
         card.append(actions);
       } else {
@@ -131,14 +149,15 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
       }
       gallery.append(card);
     }
-    const canUpload = state.photos.length < 6;
+    const photoCount = state.photos.filter(Boolean).length;
+    const canUpload = photoCount < 6;
     fileInput.disabled = !canUpload || state.savingPhotos;
     photoLabel.setAttribute('aria-disabled', String(fileInput.disabled));
     if (!state.savingPhotos) {
       photoHint.className = 'portal-subtle';
-      photoHint.textContent = state.photos.length === 6 ? 'Você já tem seis fotos. Remova uma para adicionar outra.' :
+      photoHint.textContent = photoCount === 6 ? 'Você já tem seis fotos. Remova uma para adicionar outra.' :
         !state.exists ? 'Escolha uma foto. Se seus dados estiverem completos, eles serão salvos antes do envio.' :
-          `${state.photos.length} de 6 fotos. JPG, PNG ou WebP, até 5 MB cada.`;
+          `${photoCount} de 6 fotos. JPG, PNG ou WebP, até 5 MB cada.`;
     }
   }
 
@@ -194,7 +213,7 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
     try {
       await saveProfileData();
       status('Mudanças salvas.');
-    } catch (error) { status(error.message || 'Não foi possível salvar. Tente novamente.', true); }
+    } catch (error) { status(friendlyError(error), true); }
     finally { submit.disabled = false; }
   });
 
@@ -207,7 +226,7 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
     if (!extensions[file.type] || file.size <= 0 || file.size > 5 * 1024 * 1024) {
       return photoStatus('Use uma imagem JPG, PNG ou WebP com até 5 MB.', true);
     }
-    if (state.photos.length >= 6) return photoStatus('A galeria já tem seis fotos.', true);
+    if (state.photos.every(Boolean)) return photoStatus('A galeria já tem seis fotos.', true);
     state.savingPhotos = true;
     fileInput.disabled = true;
     photoStatus('Preparando foto...');
@@ -234,11 +253,17 @@ export async function initProfile({ authenticated, getToken, user, apiBase, publ
         throw new Error(`O envio não foi concluído (código ${response.status}). Tente novamente.`);
       }
       const url = `${apiBase}/storage/v1/object/public/fotos/${objectName}`;
-      try { await saveGallery([...state.photos, url]); }
+      try {
+        const next = [...state.photos];
+        const emptySlot = next.findIndex(value => !value);
+        if (emptySlot < 0) throw new Error('A galeria já tem seis fotos.');
+        next[emptySlot] = url;
+        await saveGallery(next);
+      }
       catch (error) { await deleteOldUpload(url).catch(() => {}); throw error; }
       completion = 'Foto adicionada ao perfil.';
     } catch (error) {
-      completion = error.message || 'Não foi possível enviar a foto. Verifique sua conexão.';
+      completion = friendlyError(error, 'Não foi possível enviar a foto. Verifique sua conexão.');
       failed = true;
     } finally {
       state.savingPhotos = false;
