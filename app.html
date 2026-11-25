@@ -59,18 +59,21 @@
 
         <section class="view" data-panel="deck" aria-labelledby="deck-title" hidden>
           <p class="overline">DESCOBERTAS</p><h1 id="deck-title">Deck de perfis</h1>
-          <div class="soft-card"><span class="section-symbol">🃏</span><h2>Perfis com mais afinidade</h2>
-            <p>A navegação do Deck será a próxima integração com o Android. Ainda não habilitamos gestos ou curtidas aqui para evitar registrar uma ação errada.</p>
-            <button type="button" class="outline-action" data-view="conversas">Enquanto isso, entrar no Chat Global</button>
-          </div>
+          <p class="lead">Descubra pessoas reais. Arraste o cartão para a esquerda para avançar ou para a direita para voltar. <strong>Só o joinha envia curtida.</strong></p>
+          <p id="deck-feedback" class="muted-note" role="status" aria-live="polite">Buscando perfis…</p>
+          <div id="deck-card-area" class="deck-card-area" aria-live="polite"></div>
+          <p class="deck-hint">← Próximo perfil <span aria-hidden="true">•</span> Perfil anterior → <span aria-hidden="true">•</span> 👍 Curtir somente pelo botão</p>
         </section>
 
         <section class="view" data-panel="conexoes" aria-labelledby="connections-title" hidden>
           <p class="overline">SUAS CONEXÕES</p><h1 id="connections-title">Pessoas que despertam interesse</h1>
-          <div class="soft-card"><span class="section-symbol">💜</span><h2>Curtidas recebidas, enviadas e recíprocas</h2>
-            <p>Essa área ainda está sendo adaptada para usar as mesmas regras de privacidade do aplicativo. As curtidas existentes permanecem intactas.</p>
-            <button type="button" class="outline-action" data-view="conversas">Ir para conversas</button>
+          <div class="connection-tabs" role="tablist" aria-label="Tipos de conexões">
+            <button type="button" class="connection-tab active" data-connection-tab="recebidas" role="tab" aria-selected="true">Recebidas</button>
+            <button type="button" class="connection-tab" data-connection-tab="enviadas" role="tab" aria-selected="false">Enviadas</button>
+            <button type="button" class="connection-tab" data-connection-tab="reciprocas" role="tab" aria-selected="false">Recíprocas</button>
           </div>
+          <p id="connections-feedback" class="muted-note" role="status" aria-live="polite">Buscando suas conexões…</p>
+          <div id="connections-list" class="connections-list"></div>
         </section>
 
         <section class="view" data-panel="conversas" aria-labelledby="conversations-title" hidden>
@@ -108,6 +111,12 @@
             <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
           </form>
         </section>
+
+        <dialog id="discovery-dialog" class="discovery-dialog" aria-labelledby="discovery-title">
+          <div class="discovery-dialog-top"><h2 id="discovery-title">Perfil Afinzer</h2><button type="button" id="discovery-close" class="quiet-button">Fechar</button></div>
+          <div id="discovery-details"></div>
+          <div class="discovery-safety"><button type="button" id="discovery-report" class="outline-action">Denunciar perfil</button><button type="button" id="discovery-block" class="outline-action danger-action">Bloquear perfil</button></div>
+        </dialog>
       </main>
     </div>
   </div>
