@@ -57,6 +57,7 @@ globalThis.location = { hash: '', reload: () => { reloads++; } };
 
 const uid = 'usuario-teste';
 let color = '#FF80AB';
+let textColor = '#FFFFFF';
 let premiumActive = true;
 let originalPremium = true;
 let testMode = 'real';
@@ -157,6 +158,14 @@ const api = {
       writes.push({ cor_nome: color });
       return [{ id: uid, cor_nome: color }];
     }
+    if (path.startsWith('/rest/v1/cores_texto_chat?')) {
+      if (opts.method === 'POST') {
+        if (!premiumActive) throw new Error('Premium obrigatório');
+        textColor = JSON.parse(opts.body).cor_texto;
+        return [{ usuario_id: uid, cor_texto: textColor }];
+      }
+      return [{ usuario_id: uid, cor_texto: textColor }, { usuario_id: 'beatriz-teste', cor_texto: '#00D9FF' }];
+    }
     if (path.includes('/rpc/moderacao_minha_restricao')) return { restrita: false };
     if (path.includes('/perfis_app?')) return [{ id: 'beatriz-teste', nome: 'Beatriz Almeida', cidade_atual: 'São Paulo - SP', idade_publica: 34,
       mensagem_dia: 'Gosto de conversar sobre ciência.', cor_nome: color, hobbies: ['Ciência'] }];
@@ -180,13 +189,30 @@ await flush();
 assert.equal(panels.find(panel => panel.dataset.panel === 'direta').hidden, false, 'Botão abre conversa privada no site');
 assert.match($('direct-title').textContent, /Beatriz Almeida/, 'Destino é a pessoa selecionada no Deck');
 assert.ok(find($('direct-messages'), node => node.textContent === 'Olá!'), 'Conversa carrega histórico do Supabase');
+assert.equal(find($('direct-messages'), node => node.textContent === 'Olá!').style.color, '#00D9FF', 'Chat privado aplica a cor da mensagem da outra pessoa');
+assert.equal(find($('direct-messages'), node => node.textContent === 'Beatriz Almeida').style.color, '#FF80AB', 'Chat privado aplica a cor do nome da outra pessoa');
 assert.equal(directSent.length, 0, 'Abrir conversa não envia nenhuma mensagem automaticamente');
+assert.ok($('direct-emoji-picker').children.length >= 30, 'Chat privado oferece emojis acessíveis');
+$('direct-emoji').fire('click');
+assert.equal($('direct-emoji-picker').hidden, false, 'Clique abre painel de emojis');
+find($('direct-emoji-picker'), node => node.textContent === '😊').fire('click');
+assert.equal($('direct-input').value, '😊', 'Emoji entra no campo sem enviar sozinho');
+$('direct-input').value = '';
 $('direct-input').value = 'Oi Beatriz!';
 $('direct-input').fire('keydown', { key: 'Enter' });
 await flush();
 assert.equal(directSent.at(-1)?.p_destinatario_id, 'beatriz-teste', 'Mensagem vai para o ID correto da pessoa');
 assert.equal(directSent.at(-1)?.p_conteudo, 'Oi Beatriz!', 'Enter envia conversa privada usando RPC do Android');
 assert.equal($('direct-input').value, '', 'Campo é limpo depois do envio confirmado');
+$('direct-text-color').fire('click');
+assert.match($('name-color-title').textContent, /cor do texto/, 'Cor do texto também pode ser escolhida no chat privado');
+const pinkText = find($('name-color-options'), node => node.className === 'name-color-option'
+  && node.children.some(child => child.textContent === 'Rosa'));
+pinkText.fire('click');
+await flush();
+assert.equal(textColor, '#FF80AB', 'Cor do texto persiste no mesmo Supabase');
+assert.equal($('name-color-demo').style.color, '#FF80AB', 'Prévia mostra a cor escolhida');
+assert.equal(find($('direct-messages'), node => node.textContent === 'Oi Beatriz!').style.color, '#FF80AB', 'Mensagem enviada é exibida na cor escolhida');
 $('direct-back').fire('click');
 assert.equal(panels.find(panel => panel.dataset.panel === 'deck').hidden, false, 'Voltar retorna ao Deck');
 nav.find(node => node.dataset.view === 'comunidade').fire('click');
@@ -263,6 +289,10 @@ $('blind-chat-input').value = 'Boa noite!';
 await $('blind-chat-form').fire('submit');
 await flush();
 assert.equal(blindChatSent, 'Boa noite!', 'Chat anônimo envia por cegas_enviar');
+assert.ok($('blind-emoji-picker').children.length >= 30, 'Conversa às Cegas também tem paleta de emojis');
+$('blind-emoji').fire('click');
+find($('blind-emoji-picker'), node => node.textContent === '🤝').fire('click');
+assert.equal($('blind-chat-input').value, '🤝', 'Emoji é inserido na conversa anônima');
 nav.find(node => node.dataset.view === 'salas').fire('click');
 
 $('chat-name-color').fire('click');
@@ -303,6 +333,8 @@ assert.match($('home-plan-info').textContent, /30 minutos grátis/, 'Free mostra
 assert.match($('profile-music').textContent, /recurso Premium/, 'Modo Free bloqueia música Premium');
 assert.equal($('rooms-create').disabled, true, 'Modo Free bloqueia criação de salas');
 assert.equal($('rooms-blind').disabled, true, 'Modo Free bloqueia Conversa às Cegas');
+$('chat-text-color').fire('click');
+assert.match($('chat-feedback').textContent, /recurso Premium/, 'Free não altera a cor de texto Premium');
 assert.equal($('wallpaper-profile-open').hidden, true, 'Modo Free não oferece personalização Premium');
 assert.equal(bodyClasses.has('premium-wallpaper-active'), false, 'Modo Free não aplica fundo Premium já salvo');
 nav.find(node => node.dataset.view === 'perfil').fire('click');
@@ -340,6 +372,10 @@ await flush();
 assert.equal(sentMessages.length, beforeSend + 1, 'Enter envia mensagem sem clicar no botão');
 assert.equal(sentMessages.at(-1).conteudo, 'Primeira linha\nSegunda linha', 'Mensagem com múltiplas linhas é preservada');
 assert.equal($('chat-input').value, '', 'Campo é limpo após confirmação de envio');
+$('chat-emoji').fire('click');
+find($('chat-emoji-picker'), node => node.textContent === '❤️').fire('click');
+assert.equal($('chat-input').value, '❤️', 'Emoji funciona em sala Free sem enviar automaticamente');
+$('chat-input').value = '';
 assert.equal(timeActions[0]?.p_acao, 'entrar', 'A entrada Free chama RPC de tempo compartilhado');
 assert.equal(timeActions[0]?.p_sala_id, 'public:assunto_1');
 assert.match($('chat-time').textContent, /Free TESTE/, 'Chat usa permissão Free efetiva do teste');

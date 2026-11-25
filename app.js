@@ -3,6 +3,7 @@
 import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
 import { initDirectConversations } from './direct-conversations.mjs';
+import { initChatEmojis } from './chat-emoji.mjs';
 import { initCommunity } from './comunidade.mjs';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 import { roomCountdown } from './room-countdown.mjs';
@@ -43,8 +44,12 @@ let chatCountdownTicker = null;
 let expiredChatClosing = false;
 let lastChatOrigin = 'conversas';
 let nameColors = new Map();
-let lastColorSync = 0;
+let lastNameColorSync = new Map();
 let changingNameColor = false;
+let textColors = new Map();
+let lastTextColorSync = new Map();
+let changingTextColor = false;
+let colorPickerKind = 'name';
 
 const NAME_COLORS = [
   { name: 'Ciano', hex: '#00D9FF' },
@@ -593,43 +598,97 @@ function setChatEnabled(enabled) {
   $('chat-input').disabled = !enabled;
   $('chat-send').disabled = !enabled || chatSending;
 }
-async function syncNameColors(force = false) {
-  if (!force && Date.now() - lastColorSync < 30000) return;
+async function syncNameColors(ids, force = false) {
+  const now = Date.now();
+  const pending = [...new Set(ids)].filter(id => typeof id === 'string'
+    && /^[a-zA-Z0-9-]{1,64}$/.test(id) && (force || now - (lastNameColorSync.get(id) || 0) > 30000));
+  if (!pending.length) return;
   try {
-    const profiles = await api.authenticated('/rest/v1/perfis_app?select=id,cor_nome&limit=300');
+    const profiles = await api.authenticated(`/rest/v1/perfis_app?select=id,cor_nome&id=in.(${pending.join(',')})`);
     if (!Array.isArray(profiles)) throw new Error('Cores indisponíveis');
-    nameColors = new Map(profiles.map(person => [person.id, validColor(person.cor_nome)]).filter(([, color]) => color));
+    for (const person of profiles) {
+      if (!pending.includes(person.id)) continue;
+      const color = validColor(person.cor_nome);
+      if (color) nameColors.set(person.id, color);
+    }
     if (userProfile?.cor_nome) nameColors.set(api.user.id, validColor(userProfile.cor_nome));
-    lastColorSync = Date.now();
+    for (const id of pending) lastNameColorSync.set(id, now);
   } catch { /* A falta de uma cor não pode impedir a leitura das mensagens. */ }
+}
+async function syncTextColors(ids, force = false) {
+  const now = Date.now();
+  const pending = [...new Set(ids)].filter(id => typeof id === 'string'
+    && /^[a-zA-Z0-9-]{1,64}$/.test(id) && (force || now - (lastTextColorSync.get(id) || 0) > 30000));
+  if (!pending.length) return;
+  try {
+    const rows = await api.authenticated(`/rest/v1/cores_texto_chat?select=usuario_id,cor_texto&usuario_id=in.(${pending.join(',')})`);
+    if (!Array.isArray(rows)) throw new Error('Cores indisponíveis');
+    for (const id of pending) textColors.delete(id);
+    for (const row of rows) {
+      const color = NAME_COLORS.find(item => item.hex === validColor(row.cor_texto));
+      if (color) textColors.set(row.usuario_id, color.hex);
+    }
+    for (const id of pending) lastTextColorSync.set(id, now);
+  } catch { /* Mensagens continuam acessiveis se a personalizacao nao carregar. */ }
 }
 function renderNameColorOptions() {
   const target = $('name-color-options');
   target.replaceChildren();
-  const selected = validColor(userProfile?.cor_nome);
-  $('name-color-demo').textContent = userProfile?.nome?.trim() || 'Seu nome no Afinzer';
+  const selected = colorPickerKind === 'text' ? validColor(textColors.get(api.user.id) || '#FFFFFF') : validColor(userProfile?.cor_nome);
+  $('name-color-demo').textContent = colorPickerKind === 'text' ? 'Sua mensagem ficará assim! 💬' : (userProfile?.nome?.trim() || 'Seu nome no Afinzer');
   $('name-color-demo').style.color = selected || '#f8e8ff';
   for (const color of NAME_COLORS) {
     const button = make('button', 'name-color-option');
     button.type = 'button';
-    button.disabled = changingNameColor;
+    button.disabled = changingNameColor || changingTextColor;
     button.setAttribute('aria-pressed', String(selected === color.hex));
     const swatch = make('span', 'name-color-swatch');
     swatch.style.backgroundColor = color.hex;
     button.append(swatch, make('span', null, color.name));
     if (selected === color.hex) button.append(make('span', 'name-color-checked', '✓'));
-    button.addEventListener('click', () => void saveNameColor(color.hex));
+    button.addEventListener('click', () => void (colorPickerKind === 'text' ? saveTextColor(color.hex) : saveNameColor(color.hex)));
     target.append(button);
   }
 }
-function openNameColorPicker() {
+function openNameColorPicker(kind = 'name', feedbackId = 'chat-feedback') {
   if (!planVerified || !visualPremium()) {
-    friendly('🎨 Escolher a cor do nome é um recurso Premium.', false, 'chat-feedback');
+    friendly('🎨 Escolher cores no chat é um recurso Premium.', false, feedbackId);
     return;
   }
+  colorPickerKind = kind;
+  $('name-color-title').textContent = kind === 'text' ? '🖌️ Escolha a cor do texto' : '🎨 Escolha a cor do nome';
+  $('name-color-description').textContent = kind === 'text'
+    ? 'Suas mensagens terão essa cor nos chats do site. O aplicativo continua funcionando normalmente.'
+    : 'Sua cor de nome aparecerá no site e no aplicativo.';
   $('name-color-feedback').textContent = '';
   renderNameColorOptions();
   $('name-color-dialog').showModal();
+}
+async function saveTextColor(hex) {
+  if (!planVerified || !isPremium || changingTextColor || !NAME_COLORS.some(color => color.hex === hex)) return;
+  changingTextColor = true;
+  renderNameColorOptions();
+  $('name-color-feedback').textContent = 'Salvando sua cor de texto…';
+  try {
+    const rows = await api.authenticated('/rest/v1/cores_texto_chat?on_conflict=usuario_id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify({ usuario_id: api.user.id, cor_texto: hex })
+    });
+    if (!Array.isArray(rows) || !rows.some(row => row.usuario_id === api.user.id && validColor(row.cor_texto) === hex)) {
+      throw new Error('Cor não confirmada');
+    }
+    textColors.set(api.user.id, hex);
+    lastTextColorSync.set(api.user.id, Date.now());
+    $('name-color-feedback').textContent = 'Cor salva! Suas mensagens aparecerão nessa cor no site.';
+    if (activeChat?.ready) await loadMessages();
+    await directFeature?.refresh();
+  } catch {
+    $('name-color-feedback').textContent = 'Não foi possível salvar a cor. Confirme seu Premium e tente novamente.';
+  } finally {
+    changingTextColor = false;
+    renderNameColorOptions();
+  }
 }
 async function saveNameColor(hex) {
   if (!planVerified || !NAME_COLORS.some(color => color.hex === hex) || changingNameColor) return;
@@ -813,10 +872,9 @@ async function loadMessages() {
   chatFetching = true;
   try {
     const id = encodeURIComponent(chat.id);
-    const [records] = await Promise.all([
-      api.authenticated(`/rest/v1/mensagens?select=id,created_at,conteudo,id_remetente,nome_remetente&sala_id=eq.${id}&order=created_at.desc&limit=60`),
-      syncNameColors()
-    ]);
+    const records = await api.authenticated(`/rest/v1/mensagens?select=id,created_at,conteudo,id_remetente,nome_remetente&sala_id=eq.${id}&order=created_at.desc&limit=60`);
+    const authorIds = (Array.isArray(records) ? records : []).map(message => message.id_remetente);
+    await Promise.all([syncNameColors(authorIds), syncTextColors(authorIds)]);
     if (activeChat !== chat) return;
     const target = $('chat-messages');
     const wasNearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 130;
@@ -828,7 +886,10 @@ async function loadMessages() {
       const authorColor = nameColors.get(message.id_remetente);
       if (authorColor) author.style.color = authorColor;
       bubble.append(author);
-      bubble.append(make('p', 'message-text', message.conteudo || ''));
+      const content = make('p', 'message-text', message.conteudo || '');
+      const bodyColor = textColors.get(message.id_remetente);
+      if (bodyColor) content.style.color = bodyColor;
+      bubble.append(content);
       const date = new Date(message.created_at);
       if (!Number.isNaN(date.getTime())) bubble.append(make('div', 'message-time', date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })));
       elements.push(bubble);
@@ -960,7 +1021,10 @@ export async function initWebApp(context) {
   });
   $('create-room-form').addEventListener('submit', createRoom);
   $('chat-back').addEventListener('click', () => showView(activeChat?.origin || lastChatOrigin));
-  $('chat-name-color').addEventListener('click', openNameColorPicker);
+  $('chat-name-color').addEventListener('click', () => openNameColorPicker('name'));
+  $('chat-text-color').addEventListener('click', () => openNameColorPicker('text'));
+  $('direct-name-color').addEventListener('click', () => openNameColorPicker('name', 'direct-feedback'));
+  $('direct-text-color').addEventListener('click', () => openNameColorPicker('text', 'direct-feedback'));
   $('name-color-close').addEventListener('click', () => $('name-color-dialog').close());
   $('wallpaper-chat-open').addEventListener('click', openWallpaperPicker);
   $('wallpaper-profile-open').addEventListener('click', openWallpaperPicker);
@@ -972,12 +1036,18 @@ export async function initWebApp(context) {
     event.preventDefault();
     if (!$('chat-input').disabled && !chatSending && $('chat-input').value.trim()) $('chat-form').requestSubmit();
   });
+  initChatEmojis($, make);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && activeChat) showView(activeChat.origin);
   });
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
-  directFeature = initDirectConversations({ $, api, rpc, make, getAccess: () => planVerified && isPremium, restriction, showView });
+  await syncTextColors([api.user.id]);
+  directFeature = initDirectConversations({ $, api, rpc, make, getAccess: () => planVerified && isPremium,
+    restriction, showView, getColors: async ids => {
+      await Promise.all([syncNameColors(ids), syncTextColors(ids)]);
+      return { nameColors, textColors };
+    } });
   communityFeature = initCommunity({ $, api, make, safePhoto, restriction,
     premium: () => planVerified && isPremium, showView });
   discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium,
