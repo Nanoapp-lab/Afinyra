@@ -62,9 +62,12 @@ let originalPremium = true;
 let testMode = 'real';
 let testAuthorized = true;
 const planSwitches = [];
+const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 const rooms = [
-  { id: 'public:assunto_1', nome: 'Leitura', assunto: 'Livros', cidade: '', criador_id: uid },
-  { id: 'public:cidade_1', nome: 'Pessoal de Campinas', assunto: 'Cidade', cidade: 'Campinas - SP', criador_id: 'outro' }
+  { id: 'public:assunto_1', nome: 'Leitura', assunto: 'Livros', cidade: '', criador_id: uid, expira_em: tomorrow, duracao_horas: 24 },
+  { id: 'public:cidade_1', nome: 'Pessoal de Campinas', assunto: 'Cidade', cidade: 'Campinas - SP', criador_id: 'outro', expira_em: tomorrow, duracao_horas: 24 },
+  { id: 'public:assunto_antiga', nome: 'Sala antiga', assunto: 'Arquivada', cidade: '', criador_id: 'outro', expira_em: yesterday, duracao_horas: 2 }
 ];
 const writes = [];
 const sentMessages = [];
@@ -121,13 +124,16 @@ const api = {
     const category = params.get('id');
     const myId = params.get('criador_id')?.replace(/^eq\./, '');
     const search = params.get('or')?.match(/nome\.ilike\.\*([^*]+)\*/)?.[1]?.toLocaleLowerCase('pt-BR');
-    return rooms.filter(room => (!category || room.id.startsWith(category.includes('assunto') ? 'public:assunto_' : 'public:cidade_'))
+    return rooms.filter(room => (!room.expira_em || new Date(room.expira_em).getTime() > Date.now())
+      && (!category || room.id.startsWith(category.includes('assunto') ? 'public:assunto_' : 'public:cidade_'))
       && (!myId || room.criador_id === myId)
       && (!search || [room.nome, room.assunto, room.cidade].some(value => value.toLocaleLowerCase('pt-BR').includes(search))))
       .slice(Number(params.get('offset') || 0), Number(params.get('offset') || 0) + Number(params.get('limit') || 100));
   }
     if (path === '/rest/v1/salas' && opts.method === 'POST') {
-      const row = JSON.parse(opts.body); rooms.push(row); writes.push(row); return [row];
+      const row = JSON.parse(opts.body);
+      row.expira_em = new Date(Date.now() + row.duracao_horas * 60 * 60 * 1000).toISOString();
+      rooms.push(row); writes.push(row); return [row];
     }
     if (path.includes('/usuarios?select=id,cor_nome') && opts.method === 'PATCH') {
       color = JSON.parse(opts.body).cor_nome;
@@ -158,6 +164,8 @@ assert.ok(find($('profile-facts'), node => node.textContent === '🚬 Fumante:')
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
 assert.equal($('rooms-count').textContent, '2 sala(s) nesta página');
+assert.ok(find($('rooms-list'), node => node.className === 'room-expires' && /Encerra em/.test(node.textContent)), 'Exibe o prazo de encerramento na lista');
+assert.equal(Boolean(find($('rooms-list'), node => node.textContent === 'Sala antiga')), false, 'Salas vencidas não aparecem na lista');
 assert.equal($('rooms-create').disabled, false, 'Premium tem permissão real para criar sala');
 assert.equal($('rooms-blind').disabled, false, 'Premium pode entrar na conversa às cegas');
 for (const card of $('rooms-list').children) {
@@ -178,9 +186,16 @@ assert.equal($('create-room-dialog').open, true, 'Conta Premium pode abrir formu
 $('create-room-type').value = 'assunto';
 $('create-room-name').value = 'Conversa legal';
 $('create-room-detail').value = 'Cinema';
+$('create-room-duration').value = '168';
+$('create-room-form').fire('submit');
+assert.match($('create-room-feedback').textContent, /duração válida/, 'Sete dias não é mais uma duração permitida');
+assert.equal(writes.length, 0, 'Duração rejeitada não gera sala no banco');
+$('create-room-duration').value = '12';
 $('create-room-form').fire('submit');
 await flush();
 assert.equal(writes[0].nome, 'Conversa legal', 'Nova sala grava no mesmo banco');
+assert.equal(writes[0].duracao_horas, 12, 'Duração escolhida é enviada ao Supabase');
+assert.ok(new Date(writes[0].expira_em).getTime() > Date.now(), 'Servidor registra data futura para encerrar a sala');
 assert.match(writes[0].id, /^public:assunto_[0-9a-f-]{36}$/, 'ID de sala segue o padrão Android');
 
 $('rooms-blind').fire('click');
