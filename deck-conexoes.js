@@ -57,6 +57,24 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     img.loading = 'lazy';
     return img;
   }
+  function sidebarDetail(parent, icon, label, value) {
+    if (value == null || String(value).trim() === '') return;
+    const row = make('p', 'deck-side-detail');
+    row.append(make('strong', null, `${icon} ${label}:`));
+    row.append(make('span', null, String(value)));
+    parent.append(row);
+  }
+  function sidebarList(parent, icon, label, values) {
+    const items = (Array.isArray(values) ? values : typeof values === 'string' ? values.split(',') : [])
+      .map(value => String(value || '').trim()).filter(Boolean);
+    if (!items.length) return;
+    const group = make('div', 'deck-side-group');
+    group.append(make('strong', 'deck-side-group-title', `${icon} ${label}`));
+    const list = make('ul', 'deck-side-list');
+    for (const item of items) list.append(make('li', null, item));
+    group.append(list);
+    parent.append(group);
+  }
   async function fetchOutgoing() {
     const rows = await api.authenticated(`/rest/v1/sintonias?select=destinatario_id,status,created_at&remetente_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=500`);
     outgoing = Array.isArray(rows) ? rows : [];
@@ -123,8 +141,10 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     surface.tabIndex = 0;
     surface.setAttribute('role', 'group');
     surface.setAttribute('aria-label', `Perfil de ${name(person)}. Use o botão Passar para avançar sem curtir, ou o botão Curtir para demonstrar interesse.`);
+    let coverImage = null;
     if (photo(person)) {
-      surface.append(avatar(person, 'deck-cover'));
+      coverImage = avatar(person, 'deck-cover');
+      surface.append(coverImage);
     } else {
       const placeholder = make('div', 'deck-cover-placeholder');
       const words = name(person).split(/\s+/).filter(Boolean);
@@ -168,14 +188,11 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     pass.disabled = changingDeck;
     pass.setAttribute('aria-label', `Passar o perfil de ${name(person)} sem curtir`);
     pass.addEventListener('click', () => void nextDeck());
-    const details = make('button', 'outline-action', 'Ver perfil');
-    details.type = 'button';
-    details.addEventListener('click', () => showProfile(person.id));
     const like = make('button', 'primary-action deck-like-action', '👍 Curtir');
     like.type = 'button';
     like.disabled = changingDeck;
     like.addEventListener('click', () => void likeCurrent());
-    controls.append(pass, like, details);
+    controls.append(pass, like);
     card.append(controls);
 
     const panel = make('aside', 'deck-profile-panel');
@@ -194,15 +211,51 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
       presentation || 'Esta pessoa ainda não escreveu uma apresentação. Você pode abrir o perfil para conhecer os detalhes disponíveis.'));
     panel.append(bio);
 
-    if (looksPremium() && premium && Array.isArray(person.hobbies)) {
-      const hobbies = person.hobbies.filter(value => typeof value === 'string' && value.trim()).slice(0, 5);
-      if (hobbies.length) {
-        const interests = make('div', 'deck-interests');
-        interests.append(make('span', 'deck-panel-eyebrow', 'INTERESSES'));
-        const chips = make('div', 'deck-interest-chips');
-        for (const hobby of hobbies) chips.append(make('span', 'deck-interest-chip', hobby));
-        interests.append(chips);
-        panel.append(interests);
+    if (looksPremium() && premium) {
+      const details = make('section', 'deck-side-profile');
+      details.append(make('span', 'deck-panel-eyebrow', 'PERFIL COMPLETO · PREMIUM'));
+      sidebarList(details, '🎨', 'HOBBIES', person.hobbies);
+      sidebarList(details, '🗣️', 'IDIOMAS', person.idiomas);
+      sidebarDetail(details, '👤', 'Gênero', person.genero);
+      sidebarDetail(details, '🎯', 'Buscando', person.buscando);
+      sidebarDetail(details, '📏', 'Altura', Number.isInteger(person.altura) ? `${(person.altura / 100).toFixed(2).replace('.', ',')} m` : null);
+      sidebarDetail(details, '📍', 'Cidade natal', person.cidade_natal);
+      sidebarDetail(details, '💼', 'Profissão', person.profissao);
+      sidebarDetail(details, '🏢', 'Empresa', person.empresa);
+      sidebarDetail(details, '🎓', 'Escolaridade', person.escolaridade);
+      sidebarDetail(details, '👶', 'Filhos', person.filhos);
+      sidebarDetail(details, '🚬', 'Fumante', person.fumante);
+      sidebarDetail(details, '🍷', 'Bebida', person.bebida);
+      sidebarDetail(details, '✨', 'Religião', person.religiao);
+      if (person.musica_atual) sidebarDetail(details, '🎵', 'Ouvindo agora',
+        `${person.musica_atual}${person.artista_atual ? ` — ${person.artista_atual}` : ''}`);
+      if (details.children.length > 1) panel.append(details);
+
+      const photos = [...new Set([photo(person), ...(Array.isArray(person.fotos_perfil) ? person.fotos_perfil.map(safePhoto) : [])].filter(Boolean))];
+      if (photos.length > 1 && coverImage) {
+        const gallery = make('section', 'deck-side-gallery');
+        gallery.append(make('span', 'deck-panel-eyebrow', 'FOTOS DO PERFIL'));
+        const thumbnails = make('div', 'deck-side-thumbnails');
+        const controls = photos.map((url, index) => {
+          const button = make('button', 'deck-side-thumb');
+          button.type = 'button';
+          button.setAttribute('aria-label', `Mostrar foto ${index + 1} de ${photos.length}`);
+          const image = make('img');
+          image.src = url;
+          image.alt = '';
+          image.loading = 'lazy';
+          image.referrerPolicy = 'no-referrer';
+          button.append(image);
+          thumbnails.append(button);
+          return button;
+        });
+        controls.forEach((button, index) => button.addEventListener('click', () => {
+          coverImage.src = photos[index];
+          controls.forEach((item, photoIndex) => item.setAttribute('aria-pressed', String(photoIndex === index)));
+        }));
+        controls[0].setAttribute('aria-pressed', 'true');
+        gallery.append(thumbnails);
+        panel.append(gallery);
       }
     }
 
