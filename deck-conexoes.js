@@ -118,9 +118,19 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     const surface = make('div', 'deck-swipe-surface');
     surface.tabIndex = 0;
     surface.setAttribute('role', 'group');
-    surface.setAttribute('aria-label', `Perfil de ${name(person)}. Arraste para a esquerda para avançar, direita para voltar.`);
-    surface.append(avatar(person, photo(person) ? 'deck-cover' : 'deck-cover-placeholder'));
+    surface.setAttribute('aria-label', `Perfil de ${name(person)}. Use o botão Passar para avançar sem curtir, ou o botão Curtir para demonstrar interesse.`);
+    if (photo(person)) {
+      surface.append(avatar(person, 'deck-cover'));
+    } else {
+      const placeholder = make('div', 'deck-cover-placeholder');
+      const words = name(person).split(/\s+/).filter(Boolean);
+      const initials = [words[0]?.[0], words.length > 1 ? words[words.length - 1][0] : ''].join('').toUpperCase();
+      placeholder.append(make('div', 'deck-placeholder-halo', initials || '♡'));
+      placeholder.append(make('p', 'deck-photo-note', 'Foto de perfil ainda não adicionada'));
+      surface.append(placeholder);
+    }
     surface.append(make('div', 'deck-shade'));
+    surface.append(make('span', 'deck-photo-label', '✦ AFINZER · DESCOBERTAS'));
     const caption = make('div', 'deck-person');
     caption.append(make('h2', null, `${name(person)}${age(person)}`));
     caption.append(make('p', null, person.cidade_atual || 'Cidade não informada'));
@@ -147,16 +157,69 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     });
     card.append(surface);
     const controls = make('div', 'deck-buttons');
+    const pass = make('button', 'deck-pass-action', '✕ Passar');
+    pass.type = 'button';
+    pass.disabled = changingDeck;
+    pass.setAttribute('aria-label', `Passar o perfil de ${name(person)} sem curtir`);
+    pass.addEventListener('click', () => void nextDeck());
     const details = make('button', 'outline-action', 'Ver perfil');
     details.type = 'button';
     details.addEventListener('click', () => showProfile(person.id));
-    const like = make('button', 'primary-action', '👍 Curtir');
+    const like = make('button', 'primary-action deck-like-action', '👍 Curtir');
     like.type = 'button';
     like.disabled = changingDeck;
     like.addEventListener('click', () => void likeCurrent());
-    controls.append(details, like, make('span', 'deck-counter', `${deckIndex + 1} de ${deck.length}`));
+    controls.append(pass, like, details);
     card.append(controls);
-    area.append(card);
+
+    const panel = make('aside', 'deck-profile-panel');
+    panel.setAttribute('aria-label', `Mais sobre ${name(person)}`);
+    const panelTop = make('div', 'deck-panel-top');
+    panelTop.append(make('span', 'deck-panel-eyebrow', 'CONHEÇA UM POUCO MAIS'));
+    panelTop.append(make('span', 'deck-counter', `${deckIndex + 1} de ${deck.length}`));
+    panel.append(panelTop);
+    panel.append(make('h2', 'deck-panel-name', `${name(person)}${age(person)}`));
+    panel.append(make('p', 'deck-panel-location', `⌖ ${person.cidade_atual || 'Cidade não informada'}`));
+
+    const bio = make('div', 'deck-profile-bio');
+    bio.append(make('span', 'deck-panel-eyebrow', 'SOBRE MIM'));
+    const presentation = typeof person.mensagem_dia === 'string' ? person.mensagem_dia.trim() : '';
+    bio.append(make('p', presentation ? 'deck-bio-text' : 'deck-bio-empty',
+      presentation || 'Esta pessoa ainda não escreveu uma apresentação. Você pode abrir o perfil para conhecer os detalhes disponíveis.'));
+    panel.append(bio);
+
+    if (premium && Array.isArray(person.hobbies)) {
+      const hobbies = person.hobbies.filter(value => typeof value === 'string' && value.trim()).slice(0, 5);
+      if (hobbies.length) {
+        const interests = make('div', 'deck-interests');
+        interests.append(make('span', 'deck-panel-eyebrow', 'INTERESSES'));
+        const chips = make('div', 'deck-interest-chips');
+        for (const hobby of hobbies) chips.append(make('span', 'deck-interest-chip', hobby));
+        interests.append(chips);
+        panel.append(interests);
+      }
+    }
+
+    const indicator = make('div', 'deck-profile-progress');
+    const progressLabels = make('div', 'deck-progress-labels');
+    progressLabels.append(make('span', null, 'Explorando perfis'));
+    progressLabels.append(make('span', null, `${deckIndex + 1} / ${deck.length}`));
+    indicator.append(progressLabels);
+    const progress = make('progress', 'deck-progress');
+    progress.max = deck.length;
+    progress.value = deckIndex + 1;
+    progress.setAttribute('aria-label', 'Progresso na lista de perfis');
+    indicator.append(progress);
+    panel.append(indicator);
+
+    const reminder = make('div', 'deck-decision-note');
+    reminder.append(make('span', 'deck-decision-icon', '♡'));
+    const reminderText = make('div');
+    reminderText.append(make('strong', null, 'O interesse é você quem decide.'));
+    reminderText.append(make('p', null, 'Passar não envia curtida. Curtir demonstra seu interesse e pode criar uma conexão recíproca.'));
+    reminder.append(reminderText);
+    panel.append(reminder);
+    area.append(card, panel);
   }
   async function openDeck() {
     friendly('Carregando perfis…', false, 'deck-feedback');
