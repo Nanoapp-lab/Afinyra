@@ -42,7 +42,10 @@
 
       <main id="main-content" class="app-content">
         <p id="app-feedback" class="app-feedback" role="status" aria-live="polite">Verificando sua conta…</p>
-        <p id="preview-plan-note" class="preview-plan-note" hidden>Modo de comparação visual: sua assinatura e seus acessos reais não foram alterados.</p>
+        <div id="preview-plan-note" class="preview-plan-note" hidden>
+          <span>Modo de comparação visual: sua assinatura e seus acessos reais não foram alterados. Seus hobbies, fotos e dados completos ficam na aba Perfil.</span>
+          <button type="button" class="preview-profile-link" data-view="perfil">Ver meus dados →</button>
+        </div>
 
         <section class="view" data-panel="inicio" aria-labelledby="home-title">
           <p class="overline">AFINZER WEB</p>
@@ -127,12 +130,25 @@
         </section>
 
         <section class="view" data-panel="perfil" aria-labelledby="profile-title" hidden>
-          <p class="overline">SUA HISTÓRIA</p><h1 id="profile-title">Meu perfil</h1>
-          <div class="profile-card"><div class="profile-avatar" id="profile-avatar" aria-hidden="true">♡</div>
-            <div class="profile-copy"><h2 id="profile-name">Seu perfil Afinzer</h2><p id="profile-city">Carregando dados…</p>
-              <a href="conta.html" class="primary-action profile-edit">Editar meus dados e fotos</a></div>
+          <p class="overline">SEU PERFIL COMPLETO</p><h1 id="profile-title">Sua história, do seu jeito.</h1>
+          <p class="lead">Veja as informações e as fotos que você cadastrou no Afinzer, seja sua conta Free ou Premium.</p>
+          <div class="own-profile-notice">✦ Esta é a visualização dos seus próprios dados. Ela não depende da prévia de planos no topo e não mostra informações privadas de outras pessoas.</div>
+          <div class="profile-card profile-hero"><div class="profile-avatar" id="profile-avatar" aria-hidden="true">♡</div>
+            <div class="profile-copy"><p class="overline">MEU PERFIL AFINZER</p><h2 id="profile-name">Seu perfil Afinzer</h2>
+              <p id="profile-city">Carregando dados…</p><p id="profile-age" class="profile-age"></p>
+              <a href="conta.html" class="primary-action profile-edit">✎ Editar meus dados e fotos</a></div>
           </div>
-          <div class="home-note">O perfil que você salvar na web também será usado pelo aplicativo Android.</div>
+          <p id="profile-data-status" class="muted-note" role="status" aria-live="polite">Carregando seus dados cadastrados…</p>
+          <div class="profile-section-heading"><div><p class="overline">ATÉ SEIS FOTOS</p><h2>Minha galeria</h2></div><a href="conta.html" class="profile-text-link">Gerenciar fotos →</a></div>
+          <div id="profile-gallery" class="profile-gallery" aria-label="Suas fotos cadastradas"></div>
+          <div class="profile-about-grid">
+            <article class="own-info-card own-presentation"><p class="overline">✦ SUA APRESENTAÇÃO</p><h2>Sobre mim</h2><p id="profile-presentation" class="own-presentation-text">Carregando…</p></article>
+            <article class="own-info-card"><p class="overline">🎨 SEUS INTERESSES</p><h2>Hobbies</h2><div id="profile-hobbies" class="profile-chips"></div></article>
+            <article class="own-info-card"><p class="overline">🌎 COMO VOCÊ SE COMUNICA</p><h2>Idiomas</h2><div id="profile-languages" class="profile-chips"></div></article>
+          </div>
+          <div class="profile-section-heading"><div><p class="overline">O QUE VOCÊ CADASTROU</p><h2>Meus dados e preferências</h2></div><a href="conta.html" class="profile-text-link">Atualizar informações →</a></div>
+          <div id="profile-facts" class="profile-facts-grid"></div>
+          <div class="home-note">Esses dados vêm da mesma conta e do mesmo banco de dados usados no Android. Na sua própria área, você pode conferir também os campos que ainda não preencheu.</div>
         </section>
 
         <section class="view" data-panel="chat" aria-labelledby="chat-title" hidden>
