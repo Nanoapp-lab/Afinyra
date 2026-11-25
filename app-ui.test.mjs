@@ -6,7 +6,7 @@ class FakeNode {
     this.tag = tag; this.listeners = {}; this.children = []; this.dataset = {};
     this.attributes = {}; this.className = ''; this.style = {}; this.value = '';
     this.hidden = false; this.disabled = false; this.textContent = '';
-    this.classList = { toggle: () => {} };
+    this.classList = { toggle: () => {}, add: () => {}, remove: () => {} };
   }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
@@ -24,7 +24,7 @@ const roots = new Map();
 const bodyClasses = new Set();
 const bodyStyles = new Map();
 const savedPrefs = new Map();
-const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas'].map(panel => {
+const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas', 'direta'].map(panel => {
   const node = new FakeNode(); node.dataset.panel = panel; return node;
 });
 const nav = panels.map(panel => {
@@ -72,6 +72,8 @@ const rooms = [
 ];
 const writes = [];
 const sentMessages = [];
+const directSent = [];
+const directMessages = [{ id: 'm-1', remetente_id: 'beatriz-teste', conteudo: 'Olá!', created_at: new Date().toISOString() }];
 const timeActions = [];
 let blindPublished = null;
 let blindChatSent = '';
@@ -99,6 +101,20 @@ const api = {
       planSwitches.push(testMode);
       premiumActive = testMode === 'real' ? originalPremium : testMode === 'premium';
       return { autorizado: true, modo: testMode, premium_real: originalPremium, premium_efetivo: premiumActive };
+    }
+    if (path.includes('/rpc/minha_caixa_entrada')) return { premium: premiumActive, total_nao_lidas: 1,
+      conversas: [{ id: 'beatriz-teste', nome: 'Beatriz Almeida', ultima_mensagem: 'Olá!', nao_lidas: 1 }] };
+    if (path.includes('/rpc/minhas_mensagens_diretas')) {
+      if (!premiumActive) throw new Error('Exige Premium');
+      return [...directMessages];
+    }
+    if (path.includes('/rpc/enviar_mensagem_direta')) {
+      if (!premiumActive) throw new Error('Exige Premium');
+      const payload = JSON.parse(opts.body);
+      directSent.push(payload);
+      const message = { id: `m-${directMessages.length + 1}`, remetente_id: uid, conteudo: payload.p_conteudo, created_at: new Date().toISOString() };
+      directMessages.push(message);
+      return message.id;
     }
     if (path.includes('/rpc/cegas_deck_status')) return { situacao: 'novo' };
     if (path.includes('/rpc/cegas_deck_publicar')) { blindPublished = JSON.parse(opts.body).p_respostas; return { situacao: 'publicado' }; }
@@ -142,7 +158,8 @@ const api = {
       return [{ id: uid, cor_nome: color }];
     }
     if (path.includes('/rpc/moderacao_minha_restricao')) return { restrita: false };
-    if (path.includes('/perfis_app?')) return [{ id: uid, cor_nome: color }];
+    if (path.includes('/perfis_app?')) return [{ id: 'beatriz-teste', nome: 'Beatriz Almeida', cidade_atual: 'São Paulo - SP', idade_publica: 34,
+      mensagem_dia: 'Gosto de conversar sobre ciência.', cor_nome: color, hobbies: ['Ciência'] }];
     return [];
   }
 };
@@ -155,6 +172,27 @@ const find = (node, predicate) => {
 const flush = () => new Promise(resolve => setTimeout(resolve, 10));
 
 await initWebApp(api);
+await flush();
+const premiumTalk = find($('deck-card-area'), node => node.tag === 'button' && node.textContent === '💬 Conversar');
+assert.ok(premiumTalk, 'Premium mostra botão para conversar com Beatriz no Deck');
+premiumTalk.fire('click');
+await flush();
+assert.equal(panels.find(panel => panel.dataset.panel === 'direta').hidden, false, 'Botão abre conversa privada no site');
+assert.match($('direct-title').textContent, /Beatriz Almeida/, 'Destino é a pessoa selecionada no Deck');
+assert.ok(find($('direct-messages'), node => node.textContent === 'Olá!'), 'Conversa carrega histórico do Supabase');
+assert.equal(directSent.length, 0, 'Abrir conversa não envia nenhuma mensagem automaticamente');
+$('direct-input').value = 'Oi Beatriz!';
+$('direct-input').fire('keydown', { key: 'Enter' });
+await flush();
+assert.equal(directSent.at(-1)?.p_destinatario_id, 'beatriz-teste', 'Mensagem vai para o ID correto da pessoa');
+assert.equal(directSent.at(-1)?.p_conteudo, 'Oi Beatriz!', 'Enter envia conversa privada usando RPC do Android');
+assert.equal($('direct-input').value, '', 'Campo é limpo depois do envio confirmado');
+$('direct-back').fire('click');
+assert.equal(panels.find(panel => panel.dataset.panel === 'deck').hidden, false, 'Voltar retorna ao Deck');
+nav.find(node => node.dataset.view === 'conversas').fire('click');
+await flush();
+assert.ok(find($('direct-inbox-list'), node => node.textContent === 'Beatriz Almeida'), 'Caixa de entrada exibe contatos privados');
+nav.find(node => node.dataset.view === 'deck').fire('click');
 assert.equal($('plan-pill').textContent, '👑 Premium', 'A assinatura real é apresentada inicialmente');
 assert.equal($('real-plan-pill').textContent, '👑 Premium original', 'A assinatura original é preservada');
 assert.equal($('test-plan-control').hidden, false, 'Somente uma conta autorizada pode alternar planos de teste');
@@ -244,6 +282,12 @@ await flush();
 assert.equal(planSwitches.at(-1), 'free', 'Selecionar Free chama RPC de troca efetiva');
 assert.equal(reloads, 1, 'Após trocar o plano, a área interna recarrega para aplicar permissões');
 await initWebApp(api);
+await flush();
+assert.equal(find($('deck-card-area'), node => node.tag === 'button' && node.textContent === '💬 Conversar'), null, 'Free não exibe chamada direta Premium');
+nav.find(node => node.dataset.view === 'conversas').fire('click');
+await flush();
+assert.equal($('direct-inbox-list').children.length, 0, 'Caixa privada não expõe conversas para Free');
+assert.match($('direct-inbox-feedback').textContent, /exclusivas do Premium/, 'Free recebe explicação correta');
 assert.equal($('plan-pill').textContent, '♡ Free · TESTE', 'O modo Free é aplicado realmente');
 assert.equal($('real-plan-pill').textContent, '👑 Premium original', 'Premium original não é apagado');
 assert.equal($('preview-plan-note').hidden, false, 'Mostra aviso de teste ativo');
