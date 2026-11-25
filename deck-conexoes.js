@@ -3,8 +3,10 @@
 const $ = id => document.getElementById(id);
 const PROFILE_SELECT = 'id,nome,mensagem_dia,cidade_atual,foto_url,fotos_perfil,idade_publica,is_online,genero,buscando,altura,profissao,escolaridade,religiao,idiomas,hobbies,musica_atual,artista_atual';
 
-export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }) {
+export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, getPreviewPlan = () => 'real' }) {
   const uid = api.user.id;
+  const isPreview = () => getPreviewPlan() !== 'real';
+  const looksPremium = () => getPreviewPlan() === 'real' ? premium : getPreviewPlan() === 'premium';
   let profiles = [];
   let byId = new Map();
   let presence = new Map();
@@ -190,7 +192,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
       presentation || 'Esta pessoa ainda não escreveu uma apresentação. Você pode abrir o perfil para conhecer os detalhes disponíveis.'));
     panel.append(bio);
 
-    if (premium && Array.isArray(person.hobbies)) {
+    if (looksPremium() && premium && Array.isArray(person.hobbies)) {
       const hobbies = person.hobbies.filter(value => typeof value === 'string' && value.trim()).slice(0, 5);
       if (hobbies.length) {
         const interests = make('div', 'deck-interests');
@@ -237,6 +239,12 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   }
   async function nextDeck() {
     if (changingDeck || !deck[deckIndex]) return;
+    if (isPreview()) {
+      deckIndex++;
+      renderDeck();
+      friendly('Comparação visual: o perfil foi passado somente nesta tela, sem registrar descarte.', false, 'deck-feedback');
+      return;
+    }
     changingDeck = true;
     const person = deck[deckIndex];
     renderDeck();
@@ -268,6 +276,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   }
   async function likeCurrent() {
     if (changingDeck || !deck[deckIndex]) return;
+    if (isPreview()) return friendly('Esta é uma comparação visual. Selecione Meu plano real para curtir alguém.', true, 'deck-feedback');
     const person = deck[deckIndex];
     changingDeck = true;
     renderDeck();
@@ -303,7 +312,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     const layout = make('div', 'discovery-layout');
     const media = make('section', 'discovery-media');
     media.setAttribute('aria-label', 'Fotos do perfil');
-    const photos = (premium && Array.isArray(person.fotos_perfil))
+    const photos = (looksPremium() && premium && Array.isArray(person.fotos_perfil))
       ? [...new Set(person.fotos_perfil.map(safePhoto).filter(Boolean))]
       : [];
     const cover = photo(person);
@@ -371,7 +380,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     }
 
     const mediaCaption = make('p', 'discovery-media-note', photos.length
-      ? (premium ? 'Fotos compartilhadas neste perfil.' : 'Foto principal compartilhada neste perfil.')
+      ? (looksPremium() && premium ? 'Fotos compartilhadas neste perfil.' : 'Foto principal compartilhada neste perfil.')
       : 'Assim que uma foto válida estiver disponível, ela aparecerá aqui.');
     media.append(mediaCaption);
     layout.append(media);
@@ -390,7 +399,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     about.append(make('p', 'discovery-about-text', presentation || 'Esta pessoa ainda não escreveu uma apresentação.'));
     content.append(about);
 
-    if (premium) {
+    if (looksPremium() && premium) {
       const details = make('section', 'discovery-extra');
       details.append(make('h3', 'discovery-section-title', '♡ Um pouco mais sobre mim'));
       const fields = make('div', 'discovery-facts');
@@ -411,7 +420,9 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
       limited.append(make('span', 'discovery-premium-icon', '♛'));
       const message = make('div');
       message.append(make('strong', null, 'Conheça mais com o Premium'));
-      message.append(make('p', null, 'Os demais detalhes e a galeria completa de outras pessoas ficam disponíveis no Premium. Seu plano Free continua mostrando a foto principal e a apresentação.'));
+      message.append(make('p', null, looksPremium() && !premium
+        ? 'Prévia Premium: os detalhes e as fotos privadas de outras pessoas só podem ser carregados quando sua conta tiver Premium real no Supabase.'
+        : 'Os demais detalhes e a galeria completa de outras pessoas ficam disponíveis no Premium. No Free, você vê a foto principal e a apresentação.'));
       limited.append(message);
       content.append(limited);
     }
@@ -424,6 +435,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   }
   async function blockProfile() {
     const id = currentProfile;
+    if (isPreview()) return friendly('Volte ao plano real para bloquear um perfil. A prévia não altera seus dados.', true);
     if (!id || blocked.has(id) || !window.confirm('Bloquear este perfil? Ele deixará de aparecer no seu Deck e você poderá desbloquear pelo aplicativo.')) return;
     try {
       await api.authenticated('/rest/v1/bloqueios_usuario', {
@@ -443,6 +455,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   }
   async function reportProfile() {
     const id = currentProfile;
+    if (isPreview()) return friendly('Volte ao plano real para denunciar um perfil.', true);
     if (!id) return;
     const reason = window.prompt('Descreva o motivo da denúncia (mínimo de 3 caracteres):');
     if (reason == null) return;
@@ -463,7 +476,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   function activeConnectionRows() {
     if (connectionTab === 'enviadas') return outgoing;
     if (connectionTab === 'reciprocas') return outgoing.filter(row => row.status === 'match');
-    return premium ? (receiving?.pessoas || []) : [];
+    return looksPremium() && premium ? (receiving?.pessoas || []) : [];
   }
   function renderConnectionCard(person, id, category) {
     if (blocked.has(id)) return null;
@@ -499,10 +512,12 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
       button.classList.toggle('active', selected);
       button.setAttribute('aria-selected', String(selected));
     });
-    if (connectionTab === 'recebidas' && !premium) {
+    if (connectionTab === 'recebidas' && !(looksPremium() && premium)) {
       const card = make('div', 'connection-intro');
       card.append(make('h2', null, `👑 ${Number(receiving?.total || 0)} pessoa(s) querem conhecer você`));
-      card.append(make('p', null, 'No plano Free você vê a quantidade. O Premium revela quem são e permite dispensar uma curtida recebida.'));
+      card.append(make('p', null, looksPremium() && !premium
+        ? 'Prévia Premium: a lista privada de recebidas exige Premium real no Supabase. A simulação nunca revela dados protegidos.'
+        : 'No plano Free você vê a quantidade. O Premium revela quem são e permite dispensar uma curtida recebida.'));
       list.append(card);
     } else {
       const items = activeConnectionRows();
@@ -518,7 +533,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
       else list.append(make('div', 'connection-intro', 'Nenhuma pessoa nesta lista por enquanto.'));
     }
     const counts = {
-      recebidas: premium ? (receiving?.pessoas || []).filter(row => !blocked.has(row.id)).length : Number(receiving?.total || 0),
+      recebidas: looksPremium() && premium ? (receiving?.pessoas || []).filter(row => !blocked.has(row.id)).length : Number(receiving?.total || 0),
       enviadas: outgoing.filter(row => !blocked.has(row.destinatario_id)).length,
       reciprocas: outgoing.filter(row => row.status === 'match' && !blocked.has(row.destinatario_id)).length
     };
@@ -538,6 +553,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     }
   }
   async function dismissReceived(id, button) {
+    if (isPreview()) return friendly('Volte ao plano real para dispensar uma curtida.', true, 'connections-feedback');
     if (!premium || !window.confirm('Dispensar esta curtida recebida? Ela será retirada da sua lista, mas não apagará a ação da outra pessoa.')) return;
     button.disabled = true;
     try {
@@ -560,5 +576,9 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
   $('discovery-close').addEventListener('click', () => $('discovery-dialog').close());
   $('discovery-block').addEventListener('click', () => void blockProfile());
   $('discovery-report').addEventListener('click', () => void reportProfile());
-  return { openDeck, openConnections };
+  return { openDeck, openConnections, refreshPreview() {
+    if (deckReady) renderDeck();
+    if (receiving) renderConnections();
+    if (currentProfile && $('discovery-dialog').open) showProfile(currentProfile);
+  } };
 }
