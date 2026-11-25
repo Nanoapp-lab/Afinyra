@@ -1,7 +1,9 @@
 // Deck e Conexoes compartilham as mesmas tabelas/RPCs usadas pelo Android.
 // O gesto nunca registra curtida: somente o botao com joinha chama curtir_usuario.
 const $ = id => document.getElementById(id);
-const PROFILE_SELECT = 'id,nome,mensagem_dia,cidade_atual,foto_url,fotos_perfil,idade_publica,is_online,genero,buscando,altura,profissao,escolaridade,religiao,idiomas,hobbies,musica_atual,artista_atual';
+// A view perfis_app já aplica no Supabase as colunas visíveis ao Free e ao
+// Premium. Não buscar public.usuarios de terceiros para contornar essa regra.
+const PROFILE_SELECT = 'id,nome,mensagem_dia,cidade_atual,foto_url,fotos_perfil,idade_publica,is_online,genero,buscando,altura,cidade_natal,profissao,empresa,escolaridade,filhos,fumante,bebida,religiao,idiomas,hobbies,musica_atual,artista_atual';
 
 export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, getPreviewPlan = () => 'real' }) {
   const uid = api.user.id;
@@ -294,12 +296,23 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     }
   }
 
-  function profileLine(parent, label, value) {
+  function profileLine(parent, label, value, icon = '✦') {
     if (value == null || value === '' || (Array.isArray(value) && !value.length)) return;
     const row = make('div', 'discovery-field');
-    row.append(make('span', 'discovery-field-label', label));
+    row.append(make('span', 'discovery-field-label', `${icon} ${label}:`));
     row.append(make('p', 'discovery-field-value', Array.isArray(value) ? value.join(', ') : String(value)));
     parent.append(row);
+  }
+  function profileList(parent, title, values, icon) {
+    const items = (Array.isArray(values) ? values : typeof values === 'string' ? values.split(',') : [])
+      .map(item => String(item || '').trim()).filter(Boolean);
+    if (!items.length) return;
+    const group = make('div', 'discovery-detail-group');
+    group.append(make('h4', 'discovery-detail-group-title', `${icon} ${title}`));
+    const list = make('ul', 'discovery-detail-list');
+    for (const item of items) list.append(make('li', null, item));
+    group.append(list);
+    parent.append(group);
   }
   function showProfile(id) {
     const person = byId.get(id) || receiving?.pessoas?.find(row => row.id === id);
@@ -394,24 +407,29 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     content.append(introduction);
 
     const about = make('section', 'discovery-about');
-    about.append(make('h3', 'discovery-section-title', '✦ Apresentação'));
+    about.append(make('h3', 'discovery-section-title', '✨ Sobre mim'));
     const presentation = typeof person.mensagem_dia === 'string' ? person.mensagem_dia.trim() : '';
-    about.append(make('p', 'discovery-about-text', presentation || 'Esta pessoa ainda não escreveu uma apresentação.'));
+    about.append(make('p', 'discovery-about-text', `Apresentação: ${presentation || 'Esta pessoa ainda não escreveu uma apresentação.'}`));
     content.append(about);
 
     if (looksPremium() && premium) {
       const details = make('section', 'discovery-extra');
       details.append(make('h3', 'discovery-section-title', '♡ Um pouco mais sobre mim'));
       const fields = make('div', 'discovery-facts');
-      profileLine(fields, 'Gênero', person.genero);
-      profileLine(fields, 'Quer conhecer', person.buscando);
-      profileLine(fields, 'Profissão', person.profissao);
-      profileLine(fields, 'Altura', Number.isInteger(person.altura) ? `${(person.altura / 100).toFixed(2).replace('.', ',')} m` : null);
-      profileLine(fields, 'Escolaridade', person.escolaridade);
-      profileLine(fields, 'Crenças / religião', person.religiao);
-      profileLine(fields, 'Hobbies', person.hobbies);
-      profileLine(fields, 'Idiomas', person.idiomas);
-      if (person.musica_atual) profileLine(fields, 'Ouvindo agora', `${person.musica_atual}${person.artista_atual ? ' — ' + person.artista_atual : ''}`);
+      profileList(fields, 'HOBBIES', person.hobbies, '🎨');
+      profileList(fields, 'IDIOMAS', person.idiomas, '🗣️');
+      profileLine(fields, 'Gênero', person.genero, '👤');
+      profileLine(fields, 'Buscando', person.buscando, '🎯');
+      profileLine(fields, 'Altura', Number.isInteger(person.altura) ? `${(person.altura / 100).toFixed(2).replace('.', ',')} m` : null, '📏');
+      profileLine(fields, 'Cidade natal', person.cidade_natal, '📍');
+      profileLine(fields, 'Profissão', person.profissao, '💼');
+      profileLine(fields, 'Empresa', person.empresa, '🏢');
+      profileLine(fields, 'Escolaridade', person.escolaridade, '🎓');
+      profileLine(fields, 'Filhos', person.filhos, '👶');
+      profileLine(fields, 'Fumante', person.fumante, '🚬');
+      profileLine(fields, 'Bebida', person.bebida, '🍷');
+      profileLine(fields, 'Religião', person.religiao, '✨');
+      if (person.musica_atual) profileLine(fields, 'Ouvindo agora', `${person.musica_atual}${person.artista_atual ? ' — ' + person.artista_atual : ''}`, '🎵');
       if (fields.children.length) details.append(fields);
       else details.append(make('p', 'discovery-about-text', 'Mais informações ainda não preenchidas.'));
       content.append(details);
@@ -421,7 +439,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
       const message = make('div');
       message.append(make('strong', null, 'Conheça mais com o Premium'));
       message.append(make('p', null, looksPremium() && !premium
-        ? 'Prévia Premium: os detalhes e as fotos privadas de outras pessoas só podem ser carregados quando sua conta tiver Premium real no Supabase.'
+        ? 'Prévia Premium: os detalhes e as fotos privadas de outras pessoas só podem ser carregados quando sua conta tiver Premium real.'
         : 'Os demais detalhes e a galeria completa de outras pessoas ficam disponíveis no Premium. No Free, você vê a foto principal e a apresentação.'));
       limited.append(message);
       content.append(limited);
@@ -516,7 +534,7 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
       const card = make('div', 'connection-intro');
       card.append(make('h2', null, `👑 ${Number(receiving?.total || 0)} pessoa(s) querem conhecer você`));
       card.append(make('p', null, looksPremium() && !premium
-        ? 'Prévia Premium: a lista privada de recebidas exige Premium real no Supabase. A simulação nunca revela dados protegidos.'
+        ? 'Prévia Premium: a lista privada de recebidas exige Premium real. A simulação nunca revela dados protegidos.'
         : 'No plano Free você vê a quantidade. O Premium revela quem são e permite dispensar uma curtida recebida.'));
       list.append(card);
     } else {
