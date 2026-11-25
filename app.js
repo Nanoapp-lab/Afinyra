@@ -66,7 +66,7 @@ const OWN_PROFILE_COLUMNS = [
   'nome', 'data_nascimento', 'cidade_atual', 'cidade_natal', 'genero', 'buscando',
   'objetivo_conexao', 'altura', 'profissao', 'empresa', 'escolaridade', 'religiao',
   'filhos', 'fumante', 'bebida', 'hobbies', 'idiomas', 'mensagem_dia',
-  'foto_url', 'fotos_perfil', 'cor_nome'
+  'foto_url', 'fotos_perfil', 'cor_nome', 'instagram', 'musica_atual', 'artista_atual', 'ocultar_idade'
 ].join(',');
 const OWN_PROFILE_FIELDS = [
   ['Data de nascimento', 'data_nascimento', value => formatBirthDateBR(value)],
@@ -76,7 +76,8 @@ const OWN_PROFILE_FIELDS = [
   ['Altura', 'altura', value => formatHeightCm(value) ? `${formatHeightCm(value)} m` : ''],
   ['Profissão', 'profissao'], ['Empresa', 'empresa'],
   ['Escolaridade', 'escolaridade'], ['Crenças / religião', 'religiao'],
-  ['Filhos', 'filhos'], ['Tabagismo', 'fumante'], ['Bebidas', 'bebida']
+  ['Filhos', 'filhos'], ['Tabagismo', 'fumante'], ['Bebidas', 'bebida'],
+  ['Instagram', 'instagram']
 ];
 function textValue(value) {
   return typeof value === 'string' ? value.trim() : value == null ? '' : String(value);
@@ -99,6 +100,21 @@ function fillOwnTags(id, raw) {
     return;
   }
   values.forEach(value => target.append(make('span', 'profile-chip', value)));
+}
+function renderOwnMusic() {
+  const target = $('profile-music');
+  if (!planVerified) {
+    target.textContent = 'Não foi possível confirmar o plano para consultar a música.';
+    return;
+  }
+  if (!isPremium) {
+    target.textContent = 'A música automática é um recurso Premium. Seus demais dados e todas as suas fotos continuam visíveis para você no Free.';
+    return;
+  }
+  const title = textValue(userProfile?.musica_atual);
+  const artist = textValue(userProfile?.artista_atual);
+  target.textContent = title ? `Última música registrada: ${title}${artist ? ` — ${artist}` : ''}`
+    : 'Nenhuma música registrada no momento. Abra um player compatível no Android para compartilhar.';
 }
 function renderOwnProfile() {
   const profile = userProfile || {};
@@ -139,6 +155,7 @@ function renderOwnProfile() {
     ? `${registered} de ${OWN_PROFILE_FIELDS.length} campos preenchidos · ${photosCount} de 6 fotos cadastradas. Você pode completar os demais dados em Editar perfil.`
     : 'Você ainda não cadastrou suas informações. Use Editar perfil para começar.';
   $('profile-age').textContent = ageFromBirthDate(profile.data_nascimento);
+  renderOwnMusic();
 }
 function showView(view) {
   if (!sections.has(view)) view = 'inicio';
@@ -195,6 +212,7 @@ async function loadPlan() {
     planVerified = false;
   }
   updatePlanPresentation();
+  renderOwnMusic();
 }
 function updatePlanPresentation() {
   const simulated = previewPlan !== 'real';
