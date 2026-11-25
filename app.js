@@ -4,6 +4,7 @@ import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
 import { initDirectConversations } from './direct-conversations.mjs';
 import { initChatEmojis } from './chat-emoji.mjs';
+import { formatChatDateTime } from './chat-message-utils.mjs';
 import { initCommunity } from './comunidade.mjs';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 import { roomCountdown } from './room-countdown.mjs';
@@ -885,13 +886,19 @@ async function loadMessages() {
       const author = make('div', 'message-meta', mine ? 'Você' : (message.nome_remetente || 'Pessoa no Afinzer'));
       const authorColor = nameColors.get(message.id_remetente);
       if (authorColor) author.style.color = authorColor;
-      bubble.append(author);
+      const heading = make('div', 'message-heading');
+      heading.append(author);
+      const when = formatChatDateTime(message.created_at);
+      if (when) {
+        const stamp = make('time', 'message-time', when);
+        stamp.dateTime = message.created_at;
+        heading.append(stamp);
+      }
+      bubble.append(heading);
       const content = make('p', 'message-text', message.conteudo || '');
       const bodyColor = textColors.get(message.id_remetente);
       if (bodyColor) content.style.color = bodyColor;
       bubble.append(content);
-      const date = new Date(message.created_at);
-      if (!Number.isNaN(date.getTime())) bubble.append(make('div', 'message-time', date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })));
       elements.push(bubble);
     }
     if (!elements.length) elements.push(make('p', 'chat-empty', 'Ainda não há mensagens nesta conversa. Que tal dar o primeiro oi?'));

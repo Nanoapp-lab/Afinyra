@@ -132,7 +132,10 @@ const api = {
       timeActions.push(JSON.parse(opts.body));
       return { permitido: true, premium: false, segundos_restantes: 1800 };
     }
-    if (path.includes('/mensagens?select=')) return [];
+    if (path.includes('/mensagens?select=')) return [{
+      id: 'mensagem-exemplo', id_remetente: uid, nome_remetente: 'Pessoa Teste',
+      conteudo: 'Mensagem de exemplo no chat', created_at: new Date(2026, 10, 25, 23, 7).toISOString()
+    }];
     if (path === '/rest/v1/mensagens' && opts.method === 'POST') {
       sentMessages.push(JSON.parse(opts.body));
       return [];
@@ -191,6 +194,8 @@ assert.match($('direct-title').textContent, /Beatriz Almeida/, 'Destino é a pes
 assert.ok(find($('direct-messages'), node => node.textContent === 'Olá!'), 'Conversa carrega histórico do Supabase');
 assert.equal(find($('direct-messages'), node => node.textContent === 'Olá!').style.color, '#00D9FF', 'Chat privado aplica a cor da mensagem da outra pessoa');
 assert.equal(find($('direct-messages'), node => node.textContent === 'Beatriz Almeida').style.color, '#FF80AB', 'Chat privado aplica a cor do nome da outra pessoa');
+const directHeader = find($('direct-messages'), node => node.className === 'message-heading');
+assert.ok(directHeader?.children.some(node => node.tag === 'time' && /\d{2}\/\d{2}\/\d{4} · \d{2}:\d{2}/.test(node.textContent)), 'Conversa privada exibe nome e data/hora na mesma linha');
 assert.equal(directSent.length, 0, 'Abrir conversa não envia nenhuma mensagem automaticamente');
 assert.ok($('direct-emoji-picker').children.length >= 30, 'Chat privado oferece emojis acessíveis');
 $('direct-emoji').fire('click');
@@ -358,6 +363,8 @@ assert.match($('rooms-plan-note').textContent, /compartilhados/, 'Free teste exp
 find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala').fire('click');
 await flush();
 assert.equal($('chat-input').disabled, false, 'O campo de texto está liberado após entrar na sala');
+const globalHeader = find($('chat-messages'), node => node.className === 'message-heading');
+assert.ok(globalHeader?.children.some(node => node.tag === 'time' && node.textContent.includes('25/11/2026')), 'Chat Global e salas exibem data completa de cada mensagem');
 assert.equal($('chat-room-countdown').hidden, false, 'Temporizador aparece durante a conversa');
 assert.match($('chat-room-countdown').textContent, /Sala encerra em 00:1[0-4]:/, 'Contagem mostra horas, minutos e segundos');
 assert.match($('chat-expiration-warning').textContent, /15 minutos/, 'Aviso aparece nos últimos quinze minutos');
