@@ -70,13 +70,19 @@ export function safePhotoUrl(value, projectHost = 'bzjwgvnyfunlwxfzbbbc.supabase
   return null;
 }
 
+// The Android app stores exactly six positions (including nulls), not a compact gallery.
+export function normalizePhotoSlots(values) {
+  return Array.from({ length: 6 }, (_, index) => {
+    const value = Array.isArray(values) ? values[index] : null;
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  });
+}
+
 export function profilePhotos(profile) {
-  const result = [];
-  const candidates = [profile?.foto_url, ...(Array.isArray(profile?.fotos_perfil) ? profile.fotos_perfil : [])];
-  for (const value of candidates) {
-    const safe = safePhotoUrl(value);
-    if (safe && !result.includes(safe)) result.push(safe);
-    if (result.length === 6) break;
+  const slots = normalizePhotoSlots(profile?.fotos_perfil);
+  // Support older records where the principal photo was stored without a gallery.
+  if (!slots.some(Boolean) && typeof profile?.foto_url === 'string' && profile.foto_url.trim()) {
+    slots[0] = profile.foto_url.trim();
   }
-  return result;
+  return slots;
 }
