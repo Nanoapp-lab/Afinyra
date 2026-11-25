@@ -30,6 +30,7 @@ let roomsPage = 1;
 let roomsHasNext = false;
 let roomsRequest = 0;
 let roomSearchTimer = null;
+let roomExpiryRefreshTimer = null;
 let nameColors = new Map();
 let lastColorSync = 0;
 let changingNameColor = false;
@@ -282,6 +283,8 @@ function renderOwnProfile() {
 }
 function showView(view) {
   if (!sections.has(view)) view = 'inicio';
+  clearInterval(roomExpiryRefreshTimer);
+  roomExpiryRefreshTimer = null;
   if (currentView === 'cegas' && view !== 'cegas') void blindFeature?.exit();
   if (activeChat && view !== 'chat') void leaveChat();
   currentView = view;
@@ -292,7 +295,10 @@ function showView(view) {
     const selected = node.dataset.view === (view === 'chat' ? activeChat?.origin : view);
     node.setAttribute('aria-pressed', String(Boolean(selected)));
   });
-  if (view === 'salas') void loadRooms();
+  if (view === 'salas') {
+    void loadRooms();
+    roomExpiryRefreshTimer = setInterval(() => { if (!document.hidden) void loadRooms(); }, 60000);
+  }
   if (view === 'deck') void discoveries?.openDeck();
   if (view === 'conexoes') void discoveries?.openConnections();
   if (view === 'cegas') void blindFeature?.enter();
@@ -388,6 +394,15 @@ function appendRoom(room) {
   info.append(make('h2', null, room.nome || 'Sala sem nome'));
   if (byCity) info.append(make('p', 'room-subject', room.cidade.trim()));
   else if (room.assunto && room.assunto !== room.nome) info.append(make('p', 'room-subject', room.assunto));
+  if (room.expira_em) {
+    const expires = new Date(room.expira_em);
+    if (Number.isFinite(expires.getTime())) {
+      const formatted = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+      }).format(expires);
+      info.append(make('p', 'room-expires', `⏳ Encerra em ${formatted} (Brasília)`));
+    }
+  }
   card.append(info);
   const actions = make('div', 'room-actions');
   const subject = isSubjectRoom(room);
@@ -401,7 +416,7 @@ function appendRoom(room) {
     enter.type = 'button';
     enter.addEventListener('click', () => void openChat({
       id: String(room.id), name: String(room.nome || 'Sala'),
-      cidade: String(room.cidade || ''), origin: 'salas'
+      cidade: String(room.cidade || ''), expira_em: room.expira_em, origin: 'salas'
     }));
     actions.append(enter);
   } else {
@@ -427,7 +442,8 @@ function renderRooms() {
       || (roomFilter === 'minhas' && room.criador_id === api.user.id);
     const matchesText = !query || [room.nome, room.assunto, room.cidade]
       .some(value => normalizeSearch(value).includes(query));
-    return matchesCategory && matchesText;
+    const active = !room.expira_em || new Date(room.expira_em).getTime() > Date.now();
+    return active && matchesCategory && matchesText;
   });
   $('rooms-list').replaceChildren();
   $('rooms-count').textContent = `${rows.length} sala(s) nesta página${roomsHasNext ? ' · há mais salas' : ''}`;
@@ -451,7 +467,7 @@ async function loadRooms() {
   const thisRequest = ++roomsRequest;
   friendly('Carregando salas…', false, 'rooms-feedback');
   try {
-    const params = new URLSearchParams({ select: 'id,nome,assunto,cidade,criador_id', order: 'created_at.desc', limit: String(ROOMS_PAGE_SIZE + 1), offset: String((roomsPage - 1) * ROOMS_PAGE_SIZE) });
+    const params = new URLSearchParams({ select: 'id,nome,assunto,cidade,criador_id,duracao_horas,expira_em', order: 'created_at.desc', limit: String(ROOMS_PAGE_SIZE + 1), offset: String((roomsPage - 1) * ROOMS_PAGE_SIZE) });
     if (roomFilter === 'cidade') params.set('id', 'like.public:cidade_*');
     if (roomFilter === 'assunto') params.set('id', 'like.public:assunto_*');
     if (roomFilter === 'minhas') params.set('criador_id', `eq.${api.user.id}`);
@@ -479,8 +495,9 @@ async function createRoom(event) {
   const type = $('create-room-type').value;
   const name = $('create-room-name').value.trim();
   const detail = $('create-room-detail').value.trim();
-  if (!['assunto', 'cidade'].includes(type) || name.length < 3 || detail.length < 2) {
-    feedback.textContent = 'Informe um nome de pelo menos 3 caracteres e um assunto ou cidade com pelo menos 2.';
+  const duration = Number($('create-room-duration').value);
+  if (!['assunto', 'cidade'].includes(type) || name.length < 3 || detail.length < 2 || ![2, 12, 24].includes(duration)) {
+    feedback.textContent = 'Informe nome, assunto ou cidade e uma duração válida para a sala.';
     return;
   }
   const button = $('create-room-save');
@@ -492,12 +509,12 @@ async function createRoom(event) {
     const result = await api.authenticated('/rest/v1/salas', {
       method: 'POST', headers: { Prefer: 'return=representation' },
       body: JSON.stringify({ id, nome: name, assunto: type === 'cidade' ? 'Cidade' : detail,
-        cidade: type === 'cidade' ? detail : '', criador_id: api.user.id })
+        cidade: type === 'cidade' ? detail : '', criador_id: api.user.id, duracao_horas: duration })
     });
     if (!Array.isArray(result) || !result.some(room => room.id === id)) throw new Error('Gravação não confirmada');
     $('create-room-dialog').close();
     $('create-room-form').reset();
-    friendly('Sala criada! Ela também aparecerá no aplicativo.', false, 'rooms-feedback');
+    friendly(`Sala criada com validade de ${duration} horas! Ela também aparecerá no aplicativo.`, false, 'rooms-feedback');
     await loadRooms();
   } catch (error) {
     feedback.textContent = /duplicate|unique/i.test(error?.message || '')
@@ -604,6 +621,11 @@ async function saveNameColor(hex) {
 async function openChat(room) {
   await leavingChat;
   if (activeChat) await leaveChat();
+  if (room.expira_em && new Date(room.expira_em).getTime() <= Date.now()) {
+    friendly('O prazo desta sala terminou. Escolha outra sala ativa.', true, 'rooms-feedback');
+    if (currentView === 'salas') void loadRooms();
+    return;
+  }
   if (!planVerified || (room.id !== 'Global' && !isPremium && !isSubjectRoom(room))) {
     friendly(!planVerified ? 'Não foi possível conferir seu plano. Entre novamente.' : 'Esta sala é exclusiva para assinantes Premium.', true);
     return;
@@ -648,6 +670,12 @@ async function openChat(room) {
 async function heartbeat() {
   const chat = activeChat;
   if (!chat?.ready || document.hidden) return;
+  if (chat.expira_em && new Date(chat.expira_em).getTime() <= Date.now()) {
+    await leaveChat();
+    showView('salas');
+    friendly('O prazo desta sala terminou. Escolha outra conversa.', false, 'rooms-feedback');
+    return;
+  }
   try {
     await restriction();
     const state = await rpc(roomTimeRpc(chat), roomTimePayload(chat, 'ping'));
@@ -820,7 +848,7 @@ export async function initWebApp(context) {
     $('create-room-dialog').showModal();
   });
   $('rooms-rules').addEventListener('click', () => window.alert(
-    'Salas Vivas do Afinzer\n\nFree: 30 minutos diários compartilhados entre o Chat Global e as salas por assunto.\n\nPremium: Chat Global e salas ilimitados. Salas por cidade e criação de salas são Premium.\n\nEscolha a cor do seu nome no chat; alterar a cor é um recurso Premium.'
+    'Salas Vivas do Afinzer\n\nFree: 30 minutos diários compartilhados entre o Chat Global e as salas por assunto.\n\nPremium: Chat Global e salas ilimitados. Salas por cidade e criação de salas são Premium.\n\nNovas salas duram 2, 12 ou 24 horas (no máximo 24h). Após o vencimento, desaparecem automaticamente da lista.\n\nEscolha a cor do seu nome no chat; alterar a cor é um recurso Premium.'
   ));
   $('create-room-close').addEventListener('click', () => $('create-room-dialog').close());
   $('create-room-type').addEventListener('change', event => {
