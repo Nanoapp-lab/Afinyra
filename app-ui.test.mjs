@@ -63,9 +63,10 @@ let testMode = 'real';
 let testAuthorized = true;
 const planSwitches = [];
 const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+const inFourteenMinutes = new Date(Date.now() + 14 * 60 * 1000).toISOString();
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 const rooms = [
-  { id: 'public:assunto_1', nome: 'Leitura', assunto: 'Livros', cidade: '', criador_id: uid, expira_em: tomorrow, duracao_horas: 24 },
+  { id: 'public:assunto_1', nome: 'Leitura', assunto: 'Livros', cidade: '', criador_id: uid, expira_em: inFourteenMinutes, duracao_horas: 24 },
   { id: 'public:cidade_1', nome: 'Pessoal de Campinas', assunto: 'Cidade', cidade: 'Campinas - SP', criador_id: 'outro', expira_em: tomorrow, duracao_horas: 24 },
   { id: 'public:assunto_antiga', nome: 'Sala antiga', assunto: 'Arquivada', cidade: '', criador_id: 'outro', expira_em: yesterday, duracao_horas: 2 }
 ];
@@ -165,6 +166,7 @@ nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
 assert.equal($('rooms-count').textContent, '2 sala(s) nesta página');
 assert.ok(find($('rooms-list'), node => node.className === 'room-expires' && /Encerra em/.test(node.textContent)), 'Exibe o prazo de encerramento na lista');
+assert.ok(find($('rooms-list'), node => node.className === 'room-countdown' && /Tempo restante: 00:1[0-4]:/.test(node.textContent)), 'Lista mostra cronômetro em tempo real');
 assert.equal(Boolean(find($('rooms-list'), node => node.textContent === 'Sala antiga')), false, 'Salas vencidas não aparecem na lista');
 assert.equal($('rooms-create').disabled, false, 'Premium tem permissão real para criar sala');
 assert.equal($('rooms-blind').disabled, false, 'Premium pode entrar na conversa às cegas');
@@ -272,6 +274,9 @@ assert.match($('rooms-plan-note').textContent, /compartilhados/, 'Free teste exp
 find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala').fire('click');
 await flush();
 assert.equal($('chat-input').disabled, false, 'O campo de texto está liberado após entrar na sala');
+assert.equal($('chat-room-countdown').hidden, false, 'Temporizador aparece durante a conversa');
+assert.match($('chat-room-countdown').textContent, /Sala encerra em 00:1[0-4]:/, 'Contagem mostra horas, minutos e segundos');
+assert.match($('chat-expiration-warning').textContent, /15 minutos/, 'Aviso aparece nos últimos quinze minutos');
 const beforeSend = sentMessages.length;
 $('chat-input').value = 'Primeira linha\nSegunda linha';
 $('chat-input').fire('keydown', { key: 'Enter', shiftKey: true });
@@ -286,6 +291,17 @@ assert.equal($('chat-input').value, '', 'Campo é limpo após confirmação de e
 assert.equal(timeActions[0]?.p_acao, 'entrar', 'A entrada Free chama RPC de tempo compartilhado');
 assert.equal(timeActions[0]?.p_sala_id, 'public:assunto_1');
 assert.match($('chat-time').textContent, /Free TESTE/, 'Chat usa permissão Free efetiva do teste');
+const realNow = Date.now;
+Date.now = () => new Date(inFourteenMinutes).getTime() + 1000;
+const messagesBeforeExpiry = sentMessages.length;
+$('chat-input').value = 'Mensagem após vencimento';
+await $('chat-form').fire('submit');
+await flush();
+assert.equal(sentMessages.length, messagesBeforeExpiry, 'Não permite enviar mensagem depois da validade da sala');
+assert.equal($('chat-input').disabled, true, 'Sala encerrada desativa envio');
+assert.match($('chat-feedback').textContent, /encerrada no horário previsto/, 'Pessoa recebe explicação quando sala termina');
+assert.match($('chat-back').textContent, /Voltar às salas/, 'Navegação permanece disponível após vencimento');
+Date.now = realNow;
 nav.find(node => node.dataset.view === 'perfil').fire('click');
 await flush();
 assert.equal(timeActions.at(-1)?.p_acao, 'sair', 'Sair da sala encerra o uso compartilhado');
