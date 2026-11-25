@@ -1,5 +1,6 @@
 // Mesmo chat privado 1:1 do Android, sem tabela ou permissao paralela no site.
 // A caixa, a leitura e o envio passam pelas RPCs Premium do Supabase.
+import { formatChatDateTime } from './chat-message-utils.mjs';
 export function initDirectConversations({ $, api, rpc, make, getAccess, restriction, showView, getColors }) {
   let active = null;
   let timer = null;
@@ -39,12 +40,18 @@ export function initDirectConversations({ $, api, rpc, make, getAccess, restrict
         const bubble = make('article', mine ? 'chat-bubble mine' : 'chat-bubble');
         const author = make('div', 'message-meta', mine ? 'Você' : chat.name);
         if (nameColors.get(message.remetente_id)) author.style.color = nameColors.get(message.remetente_id);
-        bubble.append(author);
+        const heading = make('div', 'message-heading');
+        heading.append(author);
+        const when = formatChatDateTime(message.created_at);
+        if (when) {
+          const stamp = make('time', 'message-time', when);
+          stamp.dateTime = message.created_at;
+          heading.append(stamp);
+        }
+        bubble.append(heading);
         const content = make('p', 'message-text', message.conteudo || '');
         if (textColors.get(message.remetente_id)) content.style.color = textColors.get(message.remetente_id);
         bubble.append(content);
-        const date = new Date(message.created_at);
-        if (Number.isFinite(date.getTime())) bubble.append(make('div', 'message-time', date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })));
         return bubble;
       });
       if (!items.length) items.push(make('p', 'chat-empty', 'Conversa ainda sem mensagens. Escreva uma saudação para começar.'));

@@ -209,6 +209,15 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 .chat-bubble{min-width:190px;max-width:min(82%,720px);width:fit-content}
 .chat-bubble.mine{align-self:flex-end;border-color:#b768e6;background:#602982;border-radius:17px 17px 4px 17px}
 .message-meta{font-size:.88rem;font-weight:850;color:#e7c6f8;margin-bottom:7px}.message-text{white-space:pre-wrap;line-height:1.55;margin:0;font-size:1rem}.message-time{font-size:.76rem;text-align:right;opacity:.74;margin-top:7px}
+/* Chat continuo: mensagens alinhadas em uma unica coluna, sem baloes alternados. */
+.chat-messages.linear-chat{gap:0;padding:11px 18px}
+.linear-chat .chat-bubble,.linear-chat .chat-bubble.mine{box-sizing:border-box;min-width:0;max-width:none;width:100%;align-self:stretch;background:transparent;border:0;border-bottom:1px solid #64466f99;border-radius:0;padding:13px 15px;overflow-wrap:anywhere}
+.linear-chat .chat-bubble.mine{background:#60298222;border-left:3px solid #bb74da;padding-left:12px}
+.linear-chat .chat-bubble:hover{background:#603a6d35}
+.linear-chat .message-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:5px 14px;margin-bottom:6px}
+.linear-chat .message-meta{font-size:.96rem;font-weight:850;margin:0;line-height:1.35}
+.linear-chat .message-time{font-size:.86rem;color:#d5bcde;opacity:.92;text-align:right;white-space:nowrap;margin:0;font-variant-numeric:tabular-nums}
+.linear-chat .message-text{font-size:1rem;line-height:1.5;margin:0}
 .chat-form{display:flex;align-items:flex-end;gap:13px;padding:16px 0 0}.chat-form textarea{min-width:0;flex:1;resize:vertical;border:1px solid #6b4b80;background:#22152e;color:#fff;border-radius:13px;padding:14px 16px;max-height:170px;min-height:53px;line-height:1.45}
 .chat-form textarea::placeholder{color:#a997b4}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .emoji-control{position:relative;flex:none;align-self:flex-end}

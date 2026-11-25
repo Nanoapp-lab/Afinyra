@@ -179,7 +179,7 @@
           <div class="chat-topbar"><button type="button" id="direct-back" class="back-button">← Voltar</button><div class="chat-appearance-actions"><button type="button" id="direct-name-color" class="chat-color-button">🎨 Nome</button><button type="button" id="direct-text-color" class="chat-color-button">🖌️ Texto</button><span class="direct-premium-label">👑 Privado · Premium</span></div></div>
           <div class="chat-heading"><div><p class="overline">MENSAGENS DIRETAS</p><h1 id="direct-title">Conversa privada</h1></div><span id="direct-status" class="chat-time">Conectando…</span></div>
           <p id="direct-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
-          <div id="direct-messages" class="chat-messages" role="log" aria-label="Mensagens privadas"></div>
+          <div id="direct-messages" class="chat-messages linear-chat" role="log" aria-label="Mensagens privadas"></div>
           <form id="direct-form" class="chat-form">
             <div class="emoji-control"><button type="button" id="direct-emoji" class="chat-emoji-button" aria-label="Escolher emoji" aria-controls="direct-emoji-picker" aria-expanded="false" title="Escolher emoji">😊</button><div id="direct-emoji-picker" class="chat-emoji-picker" role="group" aria-label="Emojis para mensagem privada" hidden></div></div>
             <label for="direct-input" class="sr-only">Mensagem privada</label>
@@ -303,7 +303,7 @@
           <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><div class="chat-status"><span id="chat-time" class="chat-time">Conferindo acesso…</span><span id="chat-room-countdown" class="chat-room-countdown" aria-label="Tempo restante da sala" hidden></span></div></div>
           <p id="chat-expiration-warning" class="chat-expiration-warning" role="status" aria-live="polite" hidden></p>
           <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
-          <div id="chat-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa"></div>
+          <div id="chat-messages" class="chat-messages linear-chat" role="log" aria-label="Mensagens da conversa"></div>
           <form id="chat-form" class="chat-form"><div class="emoji-control"><button type="button" id="chat-emoji" class="chat-emoji-button" aria-label="Escolher emoji" aria-controls="chat-emoji-picker" aria-expanded="false" title="Escolher emoji">😊</button><div id="chat-emoji-picker" class="chat-emoji-picker" role="group" aria-label="Emojis para conversa" hidden></div></div><label for="chat-input" class="sr-only">Escreva sua mensagem</label>
             <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" aria-describedby="chat-keyboard-hint" disabled required></textarea>
             <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
