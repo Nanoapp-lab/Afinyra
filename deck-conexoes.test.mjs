@@ -28,8 +28,8 @@ globalThis.document = {
 };
 globalThis.window = { confirm: () => true, prompt: () => 'Comportamento inadequado' };
 const people = [
-  { id: 'pessoa-a', nome: 'Ana', idade_publica: 29, cidade_atual: 'São Paulo', is_online: true, foto_url: 'demo://retrato/9', fotos_perfil: [], mensagem_dia: 'Gosto de conversar.', hobbies: ['Música'] },
-  { id: 'pessoa-b', nome: 'Bia', idade_publica: 31, cidade_atual: 'Recife', cidade_natal: 'Olinda', empresa: 'Empresa Beta', filhos: 'Não', fumante: 'Não', bebida: 'Socialmente', is_online: false, foto_url: 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', fotos_perfil: ['https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia2.jpg'], hobbies: ['Leitura'] }
+  { id: 'pessoa-a', nome: 'Ana', idade_publica: 29, cidade_atual: 'São Paulo', cidade_natal: 'Santos', profissao: 'Professora', empresa: 'Escola Alfa', escolaridade: 'Superior completo', filhos: 'Não', fumante: 'Não', bebida: 'Socialmente', religiao: 'Católica', is_online: true, foto_url: 'demo://retrato/9', fotos_perfil: [], mensagem_dia: 'Gosto de conversar.', hobbies: ['Música'], idiomas: ['Português'] },
+  { id: 'pessoa-b', nome: 'Bia', idade_publica: 31, cidade_atual: 'Recife', genero: 'Feminino', buscando: 'Amizades', altura: 165, cidade_natal: 'Olinda', profissao: 'Designer', empresa: 'Empresa Beta', escolaridade: 'Superior completo', filhos: 'Não', fumante: 'Não', bebida: 'Socialmente', religiao: 'Católica', idiomas: ['Português', 'Inglês'], musica_atual: 'Música teste', artista_atual: 'Artista teste', is_online: false, foto_url: 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', fotos_perfil: ['https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia2.jpg'], hobbies: ['Leitura'] }
 ];
 let sent = [];
 let passed = [];
@@ -83,13 +83,9 @@ assert.ok(surface, 'Deck precisa mostrar perfil');
 assert.ok(find(roots.get('deck-card-area'), node => node.className === 'deck-profile-panel'), 'Site precisa exibir informações ao lado do cartão');
 assert.ok(find(roots.get('deck-card-area'), node => node.textContent === 'Gosto de conversar.'), 'Apresentação deve estar visível');
 assert.equal(find(roots.get('deck-card-area'), node => node.textContent === 'Música'), null, 'Free não deve ganhar acesso a detalhes Premium');
+assert.equal(find(roots.get('deck-card-area'), node => node.textContent === '🏢 Empresa:'), null, 'Free mantém os campos detalhados ocultos');
+assert.equal(find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil'), null, 'Deck não mostra mais botão Ver perfil');
 assert.ok(find(roots.get('deck-card-area'), node => node.textContent.includes('Imagem demonstrativa')), 'Imagem demo não pode ser apresentada como foto inexistente');
-find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil').fire('click');
-assert.ok(roots.get('discovery-dialog').open, 'Ver perfil deve abrir o visualizador');
-assert.ok(find(roots.get('discovery-details'), node => node.className === 'discovery-layout'), 'Visualizador deve ter layout com foto e dados');
-assert.ok(find(roots.get('discovery-details'), node => node.textContent.includes('imagem de demonstração')), 'Visualizador deve explicar imagem demo');
-assert.equal(find(roots.get('discovery-details'), node => node.textContent === 'Música'), null, 'Free não vê campos Premium no visualizador');
-roots.get('discovery-dialog').close();
 surface.fire('pointerdown', { button: 0, pointerId: 1, clientX: 10, clientY: 10 });
 surface.fire('pointerup', { pointerId: 1, clientX: 110, clientY: 12 });
 assert.equal(likes, 0, 'gesto direita não pode curtir');
@@ -113,6 +109,12 @@ assert.deepEqual(passed, ['pessoa-a', 'pessoa-b'], 'Passar pelo botão registra 
 assert.equal(likes, 1, 'Passar pelo botão não deve enviar curtida');
 
 await free.openConnections();
+tabButtons[1].fire('click');
+find(roots.get('connections-list'), node => node.textContent === 'Ver perfil').fire('click');
+assert.ok(roots.get('discovery-dialog').open, 'O visualizador continua disponível em Conexões');
+assert.ok(find(roots.get('discovery-details'), node => node.className === 'discovery-layout'), 'Visualizador de Conexões mantém foto e dados');
+assert.equal(find(roots.get('discovery-details'), node => node.textContent === 'Empresa Beta'), null, 'Free não revela campos Premium em Conexões');
+roots.get('discovery-dialog').close();
 tabButtons[0].fire('click');
 const countFree = find(roots.get('connections-list'), node => node.textContent.includes('1 pessoa(s)'));
 assert.ok(countFree, 'Free vê quantidade de recebidas');
@@ -122,16 +124,23 @@ isPremium = true;
 const premium = create(true);
 await premium.openConnections();
 await premium.openDeck();
-find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil').fire('click');
-assert.ok(find(roots.get('discovery-details'), node => node.textContent === 'Leitura'), 'Premium vê interesses extras');
+const premiumSide = find(roots.get('deck-card-area'), node => node.className === 'deck-profile-panel');
+for (const field of ['Feminino', 'Amizades', '1,65 m', 'Olinda', 'Designer', 'Empresa Beta', 'Superior completo', 'Não', 'Socialmente', 'Católica', 'Leitura', 'Português', 'Inglês', 'Música teste — Artista teste']) {
+  assert.ok(find(premiumSide, node => node.textContent === field), `Painel Premium mostra ${field}`);
+}
+const photoTwo = find(premiumSide, node => node.attributes['aria-label'] === 'Mostrar foto 2 de 2');
+assert.ok(photoTwo, 'Premium mostra galeria no painel lateral');
+photoTwo.fire('click');
+assert.ok(find(roots.get('deck-card-area'), node => node.className === 'deck-cover').src.includes('bia2.jpg'), 'Clicar miniatura troca a foto grande');
+assert.equal(find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil'), null, 'Premium também não exibe Ver perfil no Deck');
+tabButtons[1].fire('click');
+find(roots.get('connections-list'), node => node.textContent === 'Ver perfil').fire('click');
+assert.ok(find(roots.get('discovery-details'), node => node.textContent === 'Música'), 'Premium mantém informações no modal de Conexões');
 for (const label of ['📍 Cidade natal:', '🏢 Empresa:', '👶 Filhos:', '🚬 Fumante:', '🍷 Bebida:']) {
   assert.ok(find(roots.get('discovery-details'), node => node.textContent === label), `Premium mostra ${label}`);
 }
-const nextPhoto = find(roots.get('discovery-details'), node => node.textContent === 'Próxima ›');
-assert.ok(nextPhoto, 'Premium tem galeria quando existem fotos válidas');
-nextPhoto.fire('click');
-assert.ok(find(roots.get('discovery-details'), node => node.textContent === 'Foto 2 de 2'), 'Trocar foto deve atualizar a galeria');
 roots.get('discovery-dialog').close();
+tabButtons[0].fire('click');
 const dismiss = find(roots.get('connections-list'), node => node.textContent === '✕ Dispensar');
 assert.ok(dismiss, 'Premium pode dispensar recebidas');
 dismiss.fire('click');
@@ -144,10 +153,8 @@ hidden = false;
 let previewMode = 'premium';
 const previewFree = create(false, () => previewMode);
 await previewFree.openDeck();
-find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil').fire('click');
-assert.ok(find(roots.get('discovery-details'), node => node.textContent.includes('só podem ser carregados quando sua conta tiver Premium real')),
-  'Prévia Premium não revela dados Premium de uma conta Free');
-roots.get('discovery-dialog').close();
+assert.equal(find(roots.get('deck-card-area'), node => node.textContent === '🏢 Empresa:'), null,
+  'Prévia visual Premium não revela dados de uma conta efetivamente Free');
 find(roots.get('deck-card-area'), node => node.textContent === '👍 Curtir').fire('click');
 await flush();
 assert.equal(likes, 1, 'Simulação nunca envia curtidas reais');
@@ -161,4 +168,14 @@ previewMode = 'free';
 previewFree.refreshPreview();
 assert.ok(find(roots.get('connections-list'), node => node.textContent.includes('No plano Free')),
   'Trocar a prévia atualiza a apresentação das recebidas');
+const galleryPremium = create(true, () => 'premium');
+await galleryPremium.openDeck();
+find(roots.get('deck-card-area'), node => node.textContent === '✕ Passar').fire('click');
+const gallerySide = find(roots.get('deck-card-area'), node => node.className === 'deck-profile-panel');
+assert.ok(find(gallerySide, node => node.textContent === 'Empresa Beta'), 'Detalhes do próximo perfil aparecem na coluna direita');
+const secondPhoto = find(gallerySide, node => node.attributes['aria-label'] === 'Mostrar foto 2 de 2');
+assert.ok(secondPhoto, 'Premium pode escolher as demais fotos sem abrir modal');
+secondPhoto.fire('click');
+const cover = find(roots.get('deck-card-area'), node => node.className === 'deck-cover');
+assert.ok(cover.src.includes('bia2.jpg'), 'Miniatura altera a foto grande no Deck');
 console.log('OK: Deck, Passar, gestos, modal de perfil, galeria Premium, Free e ocultação de recebidas.');
