@@ -101,17 +101,22 @@ async function redirectToLogin() {
 }
 
 async function initLogin() {
-  const destination = new URLSearchParams(location.search).get('destino');
-  if (!['app','moderacao'].includes(destination)) return;
-  const moderatorLogin = destination === 'moderacao';
-  const nextPage = moderatorLogin ? 'admin.html' : 'app.html';
-  element('entry-choices').hidden = true;
-  element('login-card').hidden = false;
-  element('login-title').textContent = moderatorLogin ? 'Entrar na moderação' : 'Entrar no Afinzer';
-  element('login-description').textContent = moderatorLogin
-    ? 'Área exclusiva de moderadores autorizados. Entrar aqui não concede permissão administrativa.'
-    : 'Use a conta normal do Afinzer. Você começará pelo Deck e poderá explorar os demais recursos.';
-  element('create-account-actions').hidden = moderatorLogin;
+  // A escolha não aparece antes da autenticação, nem para usuários comuns.
+  // O e-mail apenas identifica qual conta mostra a escolha; permissões de
+  // moderação continuam conferidas pelo RPC protegido no Supabase.
+  async function finishLogin(user) {
+    if (user?.email?.trim().toLowerCase() === '01juliano02@gmail.com' && await isAdmin()) {
+      element('login-card').hidden = true;
+      element('entry-choices').hidden = false;
+      element('entry-kicker').textContent = 'CONTA DE MODERAÇÃO';
+      element('entry-heading').textContent = 'Como você quer entrar?';
+      element('entry-intro').textContent = 'Sua conta pode usar o Afinzer normalmente ou abrir a moderação.';
+      setMessage('');
+      return;
+    }
+    location.replace('app.html');
+  }
+  element('choice-logout').addEventListener('click', signOut);
   const form = element('login-form');
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -125,27 +130,21 @@ async function initLogin() {
       });
       saveSession(data);
       element('senha').value = '';
-      if (moderatorLogin && !(await isAdmin())) {
-        setMessage('Esta conta não tem permissão de moderação. Escolha “Entrar no Afinzer” para usar o Deck.', true);
-        return;
-      }
-      location.replace(nextPage);
+      const user = await currentUser();
+      if (!user?.id) throw new Error('Usuário não confirmado');
+      await finishLogin(user);
     } catch {
       setMessage('Não foi possível entrar. Confira o e-mail, a senha e a conexão.', true);
     } finally { button.disabled = false; }
   });
 
-  // Uma sessão existente respeita a escolha explícita de entrada.
+  // Sessões já autenticadas passam pela mesma decisão de acesso.
   if (session()?.refresh_token) {
-    setMessage('Verificando sua sessao atual...');
+    setMessage('Verificando sua sessão atual...');
     try {
       const user = await currentUser();
       if (user?.id) {
-        if (moderatorLogin && !(await isAdmin())) {
-          setMessage('A conta conectada não é moderadora. Entre com a conta administrativa ou escolha o Afinzer.', true);
-          return;
-        }
-        location.replace(nextPage);
+        await finishLogin(user);
         return;
       }
     } catch (error) {
@@ -274,7 +273,7 @@ async function submitMeasure(item, select, reason, feedback, button) {
   const ok = window.confirm(`Aplicar: ${actionName}\nConta: ${moderationProfile(item.denunciado)}\n\nMotivo: ${justification}\n\nConfirmar esta medida administrativa?`);
   if (!ok) return;
   button.disabled = true;
-  feedback.textContent = 'Aplicando medida no Supabase...';
+  feedback.textContent = 'Aplicando medida...';
   try {
     await authenticated('/functions/v1/vibeorbit-moderacao', {
       method: 'POST', body: JSON.stringify({
@@ -449,7 +448,7 @@ function renderReport(item) {
   const sanctionFeedback = make('p', 'portal-subtle'); sanctionFeedback.setAttribute('role','status');
   sanctionButton.addEventListener('click', () => submitMeasure(item, sanctionSelect, justification, sanctionFeedback, sanctionButton));
   card.append(sanctionTitle, sanctionHint, sanctionField, justificationField, sanctionButton, sanctionFeedback);
-  if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis: atualização do Supabase ainda não confirmada.'));
+  if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis. Tente novamente mais tarde.'));
   return card;
 }
 async function loadAudit() {
@@ -507,7 +506,7 @@ async function loadReports() {
     renderSanctionHistory(actions);
     await loadAudit();
   } catch {
-    target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique a permissão administrativa e a integração do Supabase.'));
+    target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique sua permissão administrativa e tente novamente.'));
   }
 }
 async function initAdmin() {
