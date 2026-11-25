@@ -112,7 +112,7 @@ async function initLogin() {
       });
       saveSession(data);
       element('senha').value = '';
-      location.replace('conta.html');
+      location.replace('app.html');
     } catch {
       setMessage('Não foi possível entrar. Confira o e-mail, a senha e a conexão.', true);
     } finally { button.disabled = false; }
@@ -125,7 +125,7 @@ async function initLogin() {
     try {
       const user = await currentUser();
       if (user?.id) {
-        location.replace('conta.html');
+        location.replace('app.html');
         return;
       }
     } catch (error) {
@@ -154,6 +154,23 @@ async function initAccount() {
       element('profile-status').textContent = 'Não foi possível abrir o editor. Recarregue a página para tentar novamente.';
     }
   } catch { redirectToLogin(); }
+}
+
+async function initApp() {
+  attachLogout();
+  try {
+    const user = await currentUser();
+    if (!user?.id) return redirectToLogin();
+    const { initWebApp } = await import('./app.js');
+    await initWebApp({ authenticated, getToken, user });
+  } catch (error) {
+    if (error?.status === 401 || !session()) return redirectToLogin();
+    const target = element('app-feedback');
+    if (target) {
+      target.textContent = 'Não foi possível confirmar sua conta agora. Confira sua conexão e atualize a página.';
+      target.classList.add('error');
+    }
+  }
 }
 
 function make(tag, className, value) {
@@ -491,5 +508,6 @@ async function initAdmin() {
 
 const page = document.body.dataset.portalPage;
 if (page === 'login') initLogin();
+if (page === 'app') initApp();
 if (page === 'account') initAccount();
 if (page === 'admin') initAdmin();
