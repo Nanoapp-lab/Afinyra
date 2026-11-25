@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs><linearGradient id="ring" x1="5" y1="7" x2="58" y2="59" gradientUnits="userSpaceOnUse"><stop stop-color="#FF95D5"/><stop offset=".5" stop-color="#BD76FD"/><stop offset="1" stop-color="#7466EE"/></linearGradient><linearGradient id="person" x1="19" y1="16" x2="47" y2="56" gradientUnits="userSpaceOnUse"><stop stop-color="#FBE1FF"/><stop offset=".55" stop-color="#C890FF"/><stop offset="1" stop-color="#9F5AFA"/></linearGradient></defs>
+  <circle cx="32" cy="32" r="27" stroke="url(#ring)" stroke-width="5"/>
+  <circle cx="32" cy="24" r="9" fill="url(#person)"/>
+  <path d="M14 53c1.4-12 8-18 18-18s16.6 6 18 18" fill="url(#person)"/>
+</svg>

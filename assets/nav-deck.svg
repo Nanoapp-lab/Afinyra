@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="back" x1="5" y1="10" x2="45" y2="58" gradientUnits="userSpaceOnUse"><stop stop-color="#7A4FF6"/><stop offset="1" stop-color="#B978FF"/></linearGradient>
+    <linearGradient id="front" x1="16" y1="7" x2="54" y2="54" gradientUnits="userSpaceOnUse"><stop stop-color="#FF89CE"/><stop offset=".6" stop-color="#CF5EF6"/><stop offset="1" stop-color="#8257F5"/></linearGradient>
+    <linearGradient id="person" x1="28" y1="23" x2="44" y2="49" gradientUnits="userSpaceOnUse"><stop stop-color="#F8D7FF"/><stop offset="1" stop-color="#B878FF"/></linearGradient>
+  </defs>
+  <rect x="8" y="15" width="34" height="43" rx="7" transform="rotate(-11 8 15)" fill="url(#back)" opacity=".82"/>
+  <rect x="18" y="10" width="35" height="45" rx="8" transform="rotate(8 18 10)" fill="#28143B" stroke="url(#front)" stroke-width="5"/>
+  <circle cx="36" cy="29" r="7" fill="url(#person)"/>
+  <path d="M24 48c.4-8.8 5.6-13 12-13s11.6 4.2 12 13" fill="url(#person)"/>
+  <path d="m54 2 2.8 6.2L63 11l-6.2 2.8L54 20l-2.8-6.2L45 11l6.2-2.8L54 2Z" fill="#DDF977" stroke="#FFF5B2" stroke-width=".6"/>
+</svg>
