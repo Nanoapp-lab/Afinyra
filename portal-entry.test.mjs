@@ -4,11 +4,11 @@ import vm from 'node:vm';
 
 const script = await readFile(new URL('./portal.js', import.meta.url), 'utf8');
 
-async function checkEntry(destination, { signedIn = true, moderator = false } = {}) {
+async function checkEntry({ signedIn = true, moderator = false, email = 'teste@example.com' } = {}) {
   const nodes = new Map();
   const getNode = id => {
     if (!nodes.has(id)) nodes.set(id, {
-      hidden: id === 'login-card', value: '', disabled: false, textContent: '',
+      hidden: id === 'entry-choices', value: '', disabled: false, textContent: '',
       listeners: {}, addEventListener(type, listener) { this.listeners[type] = listener; }
     });
     return nodes.get(id);
@@ -21,7 +21,7 @@ async function checkEntry(destination, { signedIn = true, moderator = false } = 
   const fetch = async (url, request = {}) => {
     const pathname = new URL(url).pathname;
     let payload;
-    if (pathname === '/auth/v1/user') payload = { id: 'usuario-teste', email: 'teste@example.com' };
+    if (pathname === '/auth/v1/user') payload = { id: 'usuario-teste', email };
     else if (pathname === '/rest/v1/rpc/moderacao_eh_admin') payload = moderator;
     else if (pathname === '/auth/v1/token') payload = {
       access_token: 'token-novo', refresh_token: 'refresh-novo', expires_in: 3600
@@ -31,7 +31,7 @@ async function checkEntry(destination, { signedIn = true, moderator = false } = 
   };
   const context = {
     document: { body: { dataset: { portalPage: 'login' } }, getElementById: getNode },
-    location: { search: destination ? '?destino=' + destination : '', replace(page) { target = page; } },
+    location: { search: '', replace(page) { target = page; } },
     sessionStorage: { getItem: key => data.get(key), setItem: (key, val) => data.set(key, val), removeItem: key => data.delete(key) },
     URLSearchParams, fetch, Date, JSON, Math, Number, Error
   };
@@ -40,28 +40,37 @@ async function checkEntry(destination, { signedIn = true, moderator = false } = 
   return { target: () => target, node: getNode };
 }
 
-const chooser = await checkEntry('');
-assert.equal(chooser.node('entry-choices').hidden, false, 'A entrada inicial apresenta a escolha');
-assert.equal(chooser.node('login-card').hidden, true, 'A entrada inicial oculta o formulário');
-assert.equal(chooser.target(), null, 'A sessão existente não deve pular a escolha');
+const fresh = await checkEntry({ signedIn: false });
+assert.equal(fresh.node('entry-choices').hidden, true, 'Antes do login, a escolha fica escondida');
+assert.equal(fresh.node('login-card').hidden, false, 'Antes do login, aparecem e-mail e senha');
+assert.equal(fresh.target(), null);
 
-const user = await checkEntry('app');
+const user = await checkEntry();
 assert.equal(user.target(), 'app.html', 'O usuário comum abre o aplicativo web');
 assert.equal(user.node('entry-choices').hidden, true);
-assert.equal(user.node('login-card').hidden, false);
 
-const forbidden = await checkEntry('moderacao');
-assert.equal(forbidden.target(), null, 'Uma conta comum não abre a moderação');
-assert.match(forbidden.node('portal-message').textContent, /não é moderadora/);
-assert.equal(forbidden.node('create-account-actions').hidden, true);
+const forbidden = await checkEntry({ moderator: false, email: '01juliano02@gmail.com' });
+assert.equal(forbidden.target(), 'app.html', 'Sem autorização do servidor, até o e-mail identificado entra como usuário comum');
+assert.equal(forbidden.node('entry-choices').hidden, true);
 
-const permitted = await checkEntry('moderacao', { moderator: true });
-assert.equal(permitted.target(), 'admin.html', 'Uma conta autorizada entra na moderação');
+const permitted = await checkEntry({ moderator: true, email: '01juliano02@gmail.com' });
+assert.equal(permitted.target(), null, 'Conta moderadora não é redirecionada automaticamente');
+assert.equal(permitted.node('entry-choices').hidden, false, 'A escolha só aparece depois de autenticar a conta moderadora');
+assert.equal(permitted.node('login-card').hidden, true);
 
-const login = await checkEntry('app', { signedIn: false });
+const differentModerator = await checkEntry({ moderator: true, email: 'outra@example.com' });
+assert.equal(differentModerator.target(), 'app.html', 'A escolha especial não aparece para outros e-mails');
+
+const login = await checkEntry({ signedIn: false });
 login.node('email').value = 'teste@example.com';
 login.node('senha').value = 'senha-teste';
 await login.node('login-form').listeners.submit({ preventDefault() {} });
 assert.equal(login.target(), 'app.html', 'Login por e-mail abre o Deck da área normal');
 
-console.log('OK: escolhas de entrada, login normal, moderação restrita e sessão existente.');
+const moderatorLogin = await checkEntry({ signedIn: false, moderator: true, email: '01juliano02@gmail.com' });
+moderatorLogin.node('email').value = '01juliano02@gmail.com';
+moderatorLogin.node('senha').value = 'senha-teste';
+await moderatorLogin.node('login-form').listeners.submit({ preventDefault() {} });
+assert.equal(moderatorLogin.node('entry-choices').hidden, false, 'Login normal da conta moderadora mostra a escolha depois da senha');
+
+console.log('OK: login normal primeiro; escolha apenas após autenticação da conta moderadora.');
