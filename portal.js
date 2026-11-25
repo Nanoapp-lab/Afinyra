@@ -117,6 +117,23 @@ async function initLogin() {
       setMessage('Não foi possível entrar. Confira o e-mail, a senha e a conexão.', true);
     } finally { button.disabled = false; }
   });
+
+  // A navegacao de volta ao site nao encerra a conta. Se a sessao ainda
+  // estiver valida, voltar para o login deve abrir o perfil diretamente.
+  if (session()?.refresh_token) {
+    setMessage('Verificando sua sessao atual...');
+    try {
+      const user = await currentUser();
+      if (user?.id) {
+        location.replace('conta.html');
+        return;
+      }
+    } catch (error) {
+      // Somente falhas de autorizacao comprovadas invalidam a sessao aqui.
+      if (error.status === 401 || error.status === 403) clearSession();
+    }
+    setMessage('');
+  }
 }
 async function initAccount() {
   attachLogout();
