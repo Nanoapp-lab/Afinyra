@@ -44,7 +44,9 @@ async function http(path, options = {}, token = null) {
     throw error;
   }
   if (response.status === 204) return null;
-  return response.json();
+  const raw = await response.text();
+  // O PostgREST pode confirmar INSERT com 201 e corpo vazio (return=minimal).
+  return raw ? JSON.parse(raw) : null;
 }
 async function refreshSession(current) {
   const next = await http('/auth/v1/token?grant_type=refresh_token', {
