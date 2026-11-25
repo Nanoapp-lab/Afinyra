@@ -11,13 +11,25 @@
 </head>
 <body data-portal-page="login">
   <header class="header shell"><a class="brand" href="index.html"><img class="brand-logo" src="assets/afinzer-logo-animado.gif" alt="Afinzer — balões em movimento" width="264" height="77"></a><a href="index.html">← Página inicial</a></header>
-  <main class="shell portal-layout"><div class="portal-heading"><span class="section-kicker">CONTA AFINZER</span><h1>Bem-vindo de volta.</h1><p>Entre usando a mesma conta que você utiliza no aplicativo Android.</p></div>
-    <section class="portal-card" aria-labelledby="login-title"><h2 id="login-title">Entrar na minha conta</h2>
+  <main class="shell portal-layout"><div class="portal-heading"><span class="section-kicker">AFINZER · ESCOLHA SUA ENTRADA</span><h1>Como você quer entrar?</h1><p>Explore o Afinzer normalmente ou acesse a área de moderação com uma conta autorizada.</p></div>
+    <section id="entry-choices" class="entry-choices" aria-label="Escolha o tipo de acesso">
+      <a href="entrar.html?destino=app" class="entry-choice-card">
+        <span class="entry-choice-symbol" aria-hidden="true">♡</span><span class="entry-choice-kicker">PARA CONHECER PESSOAS</span>
+        <h2>Entrar no Afinzer</h2><p>Acesse seu Deck, curtidas, conexões, salas, Conversa às Cegas e perfil com sua conta de usuário.</p>
+        <span class="entry-choice-link">Abrir o Afinzer →</span>
+      </a>
+      <a href="entrar.html?destino=moderacao" class="entry-choice-card moderator-choice">
+        <span class="entry-choice-symbol" aria-hidden="true">⚖</span><span class="entry-choice-kicker">ÁREA RESTRITA</span>
+        <h2>Entrar como moderador</h2><p>Analise denúncias e acompanhe medidas de segurança. Exige uma conta autorizada para moderação.</p>
+        <span class="entry-choice-link">Abrir moderação →</span>
+      </a>
+    </section>
+    <section id="login-card" class="portal-card" aria-labelledby="login-title" hidden><a class="portal-back" href="entrar.html">← Escolher outro tipo de entrada</a><h2 id="login-title">Entrar na minha conta</h2>
       <form id="login-form" autocomplete="on"><div class="portal-field"><label for="email">E-mail</label><input id="email" name="email" type="email" inputmode="email" autocomplete="username" maxlength="254" required></div>
         <div class="portal-field"><label for="senha">Senha</label><div class="password-control"><input id="senha" name="senha" type="password" autocomplete="current-password" required><button type="button" class="password-toggle" data-toggle-password="senha" aria-label="Mostrar senha" aria-pressed="false">👁 Mostrar</button></div></div>
         <button id="login-submit" class="portal-button" type="submit">Entrar com segurança</button>
       </form><p id="portal-message" class="portal-status" role="status" aria-live="polite"></p>
-      <div class="portal-actions"><a class="btn secondary" href="cadastro.html">Criar conta gratuitamente</a></div><p class="portal-subtle">O cadastro na web é exclusivo para maiores de 18 anos. Você usa a mesma conta no site e no aplicativo. Não solicitamos dados de pagamento.</p>
+      <div id="create-account-actions" class="portal-actions"><a class="btn secondary" href="cadastro.html">Criar conta gratuitamente</a></div><p id="login-description" class="portal-subtle">O cadastro na web é exclusivo para maiores de 18 anos. Você usa a mesma conta no site e no aplicativo. Não solicitamos dados de pagamento.</p>
     </section>
   </main>
   <footer class="footer"><div class="shell footer-bottom"><span>Afinzer • Acesso seguro</span><span class="design-credit">Designed by <strong>Zetriv Technologies LTDA</strong></span></div></footer>
