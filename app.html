@@ -209,25 +209,37 @@
           </article>
           <div class="profile-section-heading"><div><p class="overline">SEUS DADOS NO AFINZER</p><h2>Editar informações</h2></div><a href="conta.html" class="profile-text-link">Atualizar informações →</a></div>
           <div class="home-note">Seu perfil segue a visualização Free ou Premium do aplicativo. Você pode editar seus dados cadastrados em qualquer plano.</div>
+          <button type="button" id="wallpaper-profile-open" class="outline-action wallpaper-profile-button" hidden>🖼 Personalizar o fundo da minha tela · Premium</button>
         </section>
 
         <section class="view" data-panel="chat" aria-labelledby="chat-title" hidden>
-          <div class="chat-topbar"><button type="button" id="chat-back" class="back-button">← Voltar</button><button type="button" id="chat-name-color" class="chat-color-button">🎨 Cor do nome</button></div>
+          <div class="chat-topbar"><button type="button" id="chat-back" class="back-button">← Voltar</button><div class="chat-appearance-actions"><button type="button" id="chat-name-color" class="chat-color-button">🎨 Cor do nome</button><button type="button" id="wallpaper-chat-open" class="chat-color-button" hidden>🖼 Fundo da tela</button></div></div>
           <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><span id="chat-time" class="chat-time">Conferindo acesso…</span></div>
           <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
           <div id="chat-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa"></div>
           <form id="chat-form" class="chat-form"><label for="chat-input" class="sr-only">Escreva sua mensagem</label>
-            <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" disabled required></textarea>
+            <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" aria-describedby="chat-keyboard-hint" disabled required></textarea>
             <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
           </form>
+          <p id="chat-keyboard-hint" class="chat-keyboard-hint">Enter envia a mensagem · Shift+Enter pula uma linha</p>
         </section>
 
         <dialog id="name-color-dialog" class="name-color-dialog" aria-labelledby="name-color-title">
           <div class="picker-heading"><div><p class="overline">PERSONALIZE SEU NOME</p><h2 id="name-color-title">🎨 Escolha sua cor</h2></div><button type="button" id="name-color-close" class="quiet-button">Fechar</button></div>
-          <p>Experimente as opções. Com uma conta Premium real, a cor salva aparecerá para outras pessoas no site e no aplicativo.</p>
+          <p>Experimente as opções Premium. A cor salva aparecerá para outras pessoas no site e no aplicativo.</p>
           <p id="name-color-demo" class="name-color-demo">Exemplo do seu nome</p>
           <div id="name-color-options" class="name-color-options"></div>
           <p id="name-color-feedback" class="muted-note" role="status" aria-live="polite"></p>
+        </dialog>
+
+        <dialog id="wallpaper-dialog" class="name-color-dialog" aria-labelledby="wallpaper-title">
+          <div class="picker-heading"><div><p class="overline">EXCLUSIVO PREMIUM</p><h2 id="wallpaper-title">🖼 Personalizar o fundo da tela</h2></div><button type="button" id="wallpaper-close" class="quiet-button">Fechar</button></div>
+          <p>Escolha um dos fundos abaixo ou use uma foto sua. A mudança aparece apenas para você, em todas as áreas do site, incluindo as salas.</p>
+          <div id="wallpaper-options" class="wallpaper-options" role="group" aria-label="Fundos disponíveis"></div>
+          <label class="wallpaper-upload" for="wallpaper-file">📷 Escolher foto do meu dispositivo</label>
+          <input id="wallpaper-file" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="wallpaper-privacy-note">
+          <p id="wallpaper-privacy-note" class="wallpaper-privacy-note">A foto fica somente neste navegador e não é enviada ao Supabase. Não aparecerá no aplicativo ou em outros dispositivos.</p>
+          <p id="wallpaper-feedback" class="muted-note" role="status" aria-live="polite"></p>
         </dialog>
 
         <dialog id="create-room-dialog" class="create-room-dialog" aria-labelledby="create-room-title">
