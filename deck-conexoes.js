@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 // Premium. Não buscar public.usuarios de terceiros para contornar essa regra.
 const PROFILE_SELECT = 'id,nome,mensagem_dia,cidade_atual,foto_url,fotos_perfil,idade_publica,is_online,genero,buscando,altura,cidade_natal,profissao,empresa,escolaridade,filhos,fumante,bebida,religiao,idiomas,hobbies,musica_atual,artista_atual';
 
-export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, onDirectChat, getPreviewPlan = () => 'real' }) {
+export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, onDirectChat, onPersonShown, getPreviewPlan = () => 'real' }) {
   const uid = api.user.id;
   const isPreview = () => getPreviewPlan() !== 'real';
   const looksPremium = () => getPreviewPlan() === 'real' ? premium : getPreviewPlan() === 'premium';
@@ -287,7 +287,12 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     reminderText.append(make('p', null, 'Passar não envia curtida. Curtir demonstra seu interesse e pode criar uma conexão recíproca.'));
     reminder.append(reminderText);
     panel.append(reminder);
-    area.append(card, panel);
+    const leftColumn = make('div', 'deck-left-column');
+    const mural = make('section', 'deck-mural');
+    mural.setAttribute('aria-label', `Mural de ${name(person)}`);
+    leftColumn.append(card, mural);
+    area.append(leftColumn, panel);
+    if (typeof onPersonShown === 'function') void onPersonShown({ id: person.id, nome: name(person) }, mural);
   }
   async function openDeck() {
     friendly('Carregando perfis…', false, 'deck-feedback');
