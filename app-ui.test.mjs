@@ -65,7 +65,8 @@ const api = {
     if (path.includes('/usuarios?select=nome')) return [{
       nome: 'Pessoa Teste', data_nascimento: '1980-12-25', cidade_atual: 'Santos - SP',
       cidade_natal: 'Campinas - SP', cor_nome: color, altura: 175,
-      genero: 'Feminino', buscando: 'Amizades', profissao: 'Professora',
+      genero: 'Feminino', buscando: 'Amizades', profissao: 'Professora', empresa: 'Escola Central',
+      filhos: 'Não', fumante: 'Não', bebida: 'Socialmente', religiao: 'Católica',
       instagram: '@pessoateste', musica_atual: 'Música para teste', artista_atual: 'Artista Teste',
       mensagem_dia: 'Gosto de conversar e descobrir histórias.',
       hobbies: ['Música', 'Fotografia'], idiomas: ['Português', 'Inglês'],
@@ -135,6 +136,8 @@ assert.equal($('plan-pill').textContent, '👑 Premium', 'A assinatura real é a
 assert.equal($('real-plan-pill').textContent, '👑 Premium original', 'A assinatura original é preservada');
 assert.equal($('test-plan-control').hidden, false, 'Somente uma conta autorizada pode alternar planos de teste');
 assert.match($('profile-music').textContent, /Música para teste/, 'Premium real vê música registrada');
+assert.ok(find($('profile-facts'), node => node.textContent === '🏢 Empresa:'), 'Premium mostra todos os dados, incluindo empresa');
+assert.ok(find($('profile-facts'), node => node.textContent === '🚬 Fumante:'), 'Premium mostra tabagismo');
 
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
@@ -213,7 +216,9 @@ assert.ok(find($('profile-hobbies'), node => node.textContent === 'Música'), 'H
 assert.ok(find($('profile-languages'), node => node.textContent === 'Inglês'), 'Idiomas do dono aparecem em Free');
 assert.ok(find($('profile-facts'), node => node.textContent === '1,75 m'), 'Altura em metros com vírgula');
 assert.equal($('profile-presentation').textContent, 'Gosto de conversar e descobrir histórias.');
-assert.ok(find($('profile-facts'), node => node.textContent === '@pessoateste'), 'Instagram do dono aparece no perfil');
+assert.equal(find($('profile-facts'), node => node.textContent === '💼 Profissão:'), null, 'Free usa o resumo de dados do aplicativo');
+assert.ok(find($('profile-facts'), node => node.textContent === '✨ Religião:'), 'Free mostra religião no resumo');
+assert.equal(find($('profile-facts'), node => node.textContent === '@pessoateste'), null, 'Instagram não é exibido na apresentação');
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
 const subjectRoom = $('rooms-list').children.find(node => find(node, child => child.textContent === 'Leitura'));
