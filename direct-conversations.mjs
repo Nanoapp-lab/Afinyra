@@ -1,6 +1,6 @@
 // Mesmo chat privado 1:1 do Android, sem tabela ou permissao paralela no site.
 // A caixa, a leitura e o envio passam pelas RPCs Premium do Supabase.
-export function initDirectConversations({ $, api, rpc, make, getAccess, restriction, showView }) {
+export function initDirectConversations({ $, api, rpc, make, getAccess, restriction, showView, getColors }) {
   let active = null;
   let timer = null;
   let fetching = null;
@@ -30,13 +30,19 @@ export function initDirectConversations({ $, api, rpc, make, getAccess, restrict
       const messages = await rpc('minhas_mensagens_diretas', { p_outro_id: chat.id });
       if (active !== chat) return;
       if (!Array.isArray(messages)) throw new Error('Resposta inválida');
+      const { nameColors, textColors } = await getColors([api.user.id, chat.id]);
+      if (active !== chat) return;
       const target = $('direct-messages');
       const wasNearBottom = (target.scrollHeight || 0) - (target.scrollTop || 0) - (target.clientHeight || 0) < 150;
       const items = messages.map(message => {
         const mine = message.remetente_id === api.user.id;
         const bubble = make('article', mine ? 'chat-bubble mine' : 'chat-bubble');
-        bubble.append(make('div', 'message-meta', mine ? 'Você' : chat.name));
-        bubble.append(make('p', 'message-text', message.conteudo || ''));
+        const author = make('div', 'message-meta', mine ? 'Você' : chat.name);
+        if (nameColors.get(message.remetente_id)) author.style.color = nameColors.get(message.remetente_id);
+        bubble.append(author);
+        const content = make('p', 'message-text', message.conteudo || '');
+        if (textColors.get(message.remetente_id)) content.style.color = textColors.get(message.remetente_id);
+        bubble.append(content);
         const date = new Date(message.created_at);
         if (Number.isFinite(date.getTime())) bubble.append(make('div', 'message-time', date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })));
         return bubble;
@@ -150,5 +156,5 @@ export function initDirectConversations({ $, api, rpc, make, getAccess, restrict
     if (!$('direct-input').disabled && !sending && $('direct-input').value.trim()) $('direct-form').requestSubmit();
   });
 
-  return { open, close, openInbox, origin: () => active?.origin || 'conversas' };
+  return { open, close, openInbox, refresh: loadMessages, origin: () => active?.origin || 'conversas' };
 }
