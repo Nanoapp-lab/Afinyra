@@ -98,7 +98,8 @@
           <p class="lead">O Chat Global usa as mesmas mensagens do aplicativo Android.</p>
           <div class="conversation-actions">
             <button type="button" id="open-global" class="primary-action">Entrar no Chat Global</button>
-            <span class="muted-note">Mensagens privadas e Conversa às Cegas serão integradas nas próximas etapas.</span>
+            <button type="button" id="conversas-blind" class="outline-action">🎭 Conversa às Cegas · Premium</button>
+            <span class="muted-note">Mensagens privadas diretas ainda estão sendo alinhadas ao aplicativo Android.</span>
           </div>
         </section>
 
@@ -108,7 +109,7 @@
           <p id="rooms-plan-note" class="rooms-plan-note">Conferindo seu plano…</p>
           <div class="rooms-feature-actions">
             <button type="button" id="rooms-global" class="rooms-global-button"><span aria-hidden="true">💬</span><span><strong>Chat Global</strong><small>Converse com toda a comunidade</small></span></button>
-            <button type="button" class="rooms-blind-button" disabled title="Recurso em integração com o site"><span aria-hidden="true">🎭</span><span><strong>Conversa às Cegas</strong><small>Em breve no site</small></span></button>
+            <button type="button" id="rooms-blind" class="rooms-blind-button"><span aria-hidden="true">🎭</span><span><strong>Conversa às Cegas</strong><small>Conheça alguém pelas respostas · Premium</small></span></button>
           </div>
           <div class="rooms-toolbar">
             <label for="rooms-search" class="sr-only">Buscar salas por nome, assunto ou cidade</label>
@@ -124,9 +125,65 @@
             <button type="button" id="rooms-create" class="primary-action">＋ Criar sala</button>
             <button type="button" id="rooms-rules" class="outline-action">ⓘ Regras</button>
           </div>
+          <p id="rooms-create-note" class="muted-note"></p>
           <p id="rooms-count" class="rooms-count" aria-live="polite"></p>
           <p id="rooms-feedback" class="muted-note" role="status" aria-live="polite">Carregando salas…</p>
           <div id="rooms-list" class="rooms-list"></div>
+          <div class="rooms-pages" aria-label="Navegação entre páginas de salas">
+            <button type="button" id="rooms-previous" class="outline-action">← Anterior</button>
+            <span id="rooms-page-status" aria-live="polite">Página 1</span>
+            <button type="button" id="rooms-next" class="outline-action">Próxima →</button>
+          </div>
+        </section>
+
+        <section class="view blind-view" data-panel="cegas" aria-labelledby="blind-title" hidden>
+          <p class="overline">🎭 CONVERSA ÀS CEGAS · PREMIUM</p>
+          <h1 id="blind-title">Primeiro a conversa. Depois, quem sabe, o rosto.</h1>
+          <p class="lead">Responda três perguntas. Conheça respostas anônimas, envie ou aceite um convite e converse. Os perfis só aparecem se ambos aceitarem a revelação.</p>
+          <p id="blind-feedback" class="muted-note" role="status" aria-live="polite"></p>
+          <div id="blind-setup" class="blind-panel">
+            <div class="blind-step" id="blind-step">Pergunta 1 de 3</div>
+            <h2 id="blind-question">Preparando sua pergunta…</h2>
+            <label for="blind-answer" class="sr-only">Sua resposta</label>
+            <textarea id="blind-answer" rows="4" maxlength="500" placeholder="Conte um pouco sobre você, sem revelar seu nome ou contato."></textarea>
+            <div class="blind-actions">
+              <button id="blind-skip" type="button" class="outline-action">↻ Trocar pergunta</button>
+              <button id="blind-review" type="button" class="outline-action">Rever respostas</button>
+              <button id="blind-continue" type="button" class="primary-action">Próxima pergunta</button>
+            </div>
+          </div>
+          <div id="blind-deck" class="blind-panel" hidden>
+            <h2>💜 Descubra pessoas pelas respostas</h2>
+            <p id="blind-deck-status" class="muted-note">Procurando…</p>
+            <div id="blind-candidate" class="blind-answer-card"></div>
+            <div class="blind-actions">
+              <button id="blind-next" type="button" class="outline-action">Próxima pessoa</button>
+              <button id="blind-invite" type="button" class="primary-action">💌 Quero conversar</button>
+              <button id="blind-pause" type="button" class="outline-action">Pausar busca</button>
+            </div>
+            <div id="blind-incoming" class="blind-incoming" hidden>
+              <h3>💌 Alguém quer conversar com você!</h3>
+              <div id="blind-invitation-answers" class="blind-answer-card"></div>
+              <div class="blind-actions"><button id="blind-decline" type="button" class="outline-action">Não, obrigado</button><button id="blind-accept" type="button" class="primary-action">Aceitar convite</button></div>
+            </div>
+          </div>
+          <div id="blind-chat" class="blind-panel" hidden>
+            <div class="blind-chat-top"><h2>🎭 Conversa anônima</h2><span id="blind-chat-status">Validando conversa…</span></div>
+            <div id="blind-other-answers" class="blind-other-answers"></div>
+            <div id="blind-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa às cegas"></div>
+            <form id="blind-chat-form" class="chat-form">
+              <label for="blind-chat-input" class="sr-only">Mensagem anônima</label><textarea id="blind-chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…"></textarea>
+              <button id="blind-send" type="submit" class="primary-action">Enviar</button>
+            </form>
+            <div class="blind-actions blind-chat-controls">
+              <button id="blind-reveal" type="button" class="outline-action">👁 Solicitar revelação</button>
+              <button id="blind-profile" type="button" class="outline-action" hidden>Ver perfil revelado</button>
+              <button id="blind-report" type="button" class="outline-action">Denunciar</button>
+              <button id="blind-block" type="button" class="outline-action danger-action">Bloquear</button>
+              <button id="blind-end" type="button" class="outline-action danger-action">Encerrar conversa</button>
+            </div>
+          </div>
+          <button id="blind-back" type="button" class="back-button">← Voltar às salas</button>
         </section>
 
         <section class="view" data-panel="perfil" aria-labelledby="profile-title" hidden>
