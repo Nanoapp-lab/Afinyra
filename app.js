@@ -2,10 +2,11 @@
 // autorizacao, plano e tempo de uso sao confirmados no servidor.
 import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
+import { initDirectConversations } from './direct-conversations.mjs';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 import { roomCountdown } from './room-countdown.mjs';
 const $ = id => document.getElementById(id);
-const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas']);
+const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas', 'direta']);
 let api;
 let userProfile = null;
 let isPremium = false;
@@ -19,6 +20,7 @@ let leavingChat = Promise.resolve();
 let currentView = 'inicio';
 let discoveries = null;
 let blindFeature = null;
+let directFeature = null;
 let previewPlan = 'real';
 let testAllowed = false;
 let originalPremium = false;
@@ -295,13 +297,15 @@ function showView(view) {
   clearInterval(roomCountdownTicker);
   roomCountdownTicker = null;
   if (currentView === 'cegas' && view !== 'cegas') void blindFeature?.exit();
+  if (currentView === 'direta' && view !== 'direta') directFeature?.close();
   if (activeChat && view !== 'chat') void leaveChat();
   currentView = view;
   document.querySelectorAll('[data-panel]').forEach(node => {
     node.hidden = node.dataset.panel !== view;
   });
   document.querySelectorAll('.nav-item').forEach(node => {
-    const selected = node.dataset.view === (view === 'chat' ? activeChat?.origin : view);
+    const selected = node.dataset.view === (view === 'chat' ? activeChat?.origin
+      : view === 'direta' ? directFeature?.origin() : view);
     node.setAttribute('aria-pressed', String(Boolean(selected)));
   });
   if (view === 'salas') {
@@ -311,6 +315,7 @@ function showView(view) {
   }
   if (view === 'deck') void discoveries?.openDeck();
   if (view === 'conexoes') void discoveries?.openConnections();
+  if (view === 'conversas') void directFeature?.openInbox();
   if (view === 'cegas') void blindFeature?.enter();
   if (view !== 'chat') history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -968,7 +973,9 @@ export async function initWebApp(context) {
   });
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
-  discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium });
+  directFeature = initDirectConversations({ $, api, rpc, make, getAccess: () => planVerified && isPremium, restriction, showView });
+  discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium,
+    onDirectChat: person => directFeature.open(person) });
   blindFeature = initBlindConversations({ $, rpc, api,
     getAccess: () => planVerified && isPremium,
     restriction, leaveView: () => showView('salas') });
