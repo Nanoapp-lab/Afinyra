@@ -251,6 +251,13 @@
             <input id="create-room-name" maxlength="80" minlength="3" required placeholder="Ex.: Amizades e boas conversas">
             <label for="create-room-detail" id="create-room-detail-label">Assunto da sala</label>
             <input id="create-room-detail" maxlength="80" minlength="2" required placeholder="Ex.: Música, viagens, filmes…">
+            <label for="create-room-duration">Por quanto tempo a sala ficará aberta?</label>
+            <select id="create-room-duration" required>
+              <option value="2">2 horas</option>
+              <option value="12">12 horas</option>
+              <option value="24" selected>24 horas</option>
+            </select>
+            <p class="room-lifetime-note">Duração máxima de 24 horas. A sala encerra automaticamente ao terminar o prazo; não será possível prolongá-la depois de criada.</p>
             <p id="create-room-feedback" role="status" aria-live="polite"></p>
             <button type="submit" id="create-room-save" class="primary-action">Criar sala</button>
           </form>
