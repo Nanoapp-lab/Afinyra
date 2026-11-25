@@ -43,12 +43,12 @@ export function parseHeightCm(value) {
   if (!/^\d+(?:\.\d{1,2})?$/.test(raw)) throw new Error('Informe a altura como 1,75 ou 175.');
   const number = Number(raw);
   const cm = number < 3 ? Math.round(number * 100) : Math.round(number);
-  if (cm < 100 || cm > 250) throw new Error('Informe uma altura entre 1,00 m e 2,50 m.');
+  if (cm < 80 || cm > 250) throw new Error('Informe uma altura entre 0,80 m e 2,50 m.');
   return cm;
 }
 
 export function formatHeightCm(value) {
-  return Number.isInteger(value) && value >= 100 && value <= 250
+  return Number.isInteger(value) && value >= 80 && value <= 250
     ? (value / 100).toFixed(2).replace('.', ',') : '';
 }
 
