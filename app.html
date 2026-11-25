@@ -37,6 +37,7 @@
         <button type="button" class="nav-item" data-view="deck" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span> Deck</button>
         <button type="button" class="nav-item" data-view="conexoes" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.9 8.2 8.8-8.2a5.5 5.5 0 0 0 0-7.8Z"/></svg></span> Conexões</button>
         <button type="button" class="nav-item" data-view="conversas" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 17a3 3 0 0 1-3 3H9l-5 2v-5a3 3 0 0 1-2-3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/><path d="M7 9h8M7 13h6"/></svg></span> Conversas</button>
+        <button type="button" class="nav-item" data-view="comunidade" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 7.5 9H3l6 5-2 8 5-4 5 4-2-8 6-5h-4.5L12 2z"/></svg></span> Comunidade</button>
         <button type="button" class="nav-item" data-view="salas" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v1"/></svg></span> Salas</button>
         <button type="button" class="nav-item" data-view="perfil" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span> Perfil</button>
       </nav>
@@ -81,6 +82,55 @@
           <p id="deck-feedback" class="muted-note" role="status" aria-live="polite">Buscando perfis…</p>
           <div id="deck-card-area" class="deck-card-area" aria-live="polite"></div>
           <p class="deck-hint"><span aria-hidden="true">✦</span> No computador, escolha pelos botões. O botão <strong>Passar</strong> avança sem curtir. No aplicativo Android, os gestos continuam como antes.</p>
+        </section>
+
+        <section class="view" data-panel="comunidade" aria-labelledby="community-title" hidden>
+          <p class="overline">✦ PESSOAS, HISTÓRIAS E CONHECIMENTO</p>
+          <h1 id="community-title">Comunidade Afinzer<span class="deck-heading-dot">.</span></h1>
+          <p class="lead">Compartilhe pensamentos e fotos. Faça perguntas, ajude outras pessoas e conquiste estrelas.</p>
+          <div class="community-tabs" role="group" aria-label="Conteúdo da comunidade">
+            <button type="button" id="community-posts-tab" class="community-tab active" aria-pressed="true">💭 Publicações</button>
+            <button type="button" id="community-questions-tab" class="community-tab" aria-pressed="false">❓ Perguntas e respostas</button>
+          </div>
+          <p id="community-feedback" class="muted-note" role="status" aria-live="polite"></p>
+          <div id="community-posts-panel" class="community-section">
+            <form id="community-post-form" class="community-composer">
+              <h2>Qual é seu pensamento de hoje?</h2>
+              <label for="community-post-text">Compartilhe uma ideia, experiência ou foto</label>
+              <textarea id="community-post-text" rows="4" maxlength="5000" placeholder="Escreva algo para a comunidade…"></textarea>
+              <div class="community-composer-actions">
+                <label class="community-photo-picker" for="community-post-photo">📷 Escolher foto
+                  <input id="community-post-photo" type="file" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <span id="community-photo-name" class="muted-note">Foto opcional · até 10 MB</span>
+                <button id="community-post-submit" type="submit" class="primary-action">Publicar</button>
+              </div>
+              <p id="community-post-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            </form>
+            <div id="community-profile-filter" class="community-profile-filter" hidden></div>
+            <div id="community-post-list" class="community-list"></div>
+            <button type="button" id="community-post-more" class="outline-action" hidden>Carregar mais publicações</button>
+          </div>
+          <div id="community-questions-panel" class="community-section" hidden>
+            <div class="community-reputation" id="community-my-reputation">⭐ Sua contribuição: carregando…</div>
+            <p class="muted-note">As estrelas reconhecem respostas válidas: 5 estrelas com 1.000 respostas e 💎 Diamante com 5.000. Só uma resposta por pessoa em cada pergunta.</p>
+            <form id="community-question-form" class="community-composer">
+              <h2>Precisa de uma opinião ou ajuda?</h2>
+              <label for="community-question-title">Sua pergunta</label>
+              <input id="community-question-title" maxlength="180" minlength="10" required placeholder="Ex.: Como encontrar coragem para mudar de profissão?">
+              <label for="community-question-details">Conte um pouco mais (opcional)</label>
+              <textarea id="community-question-details" rows="3" maxlength="2500" placeholder="Explique sua dúvida, sem divulgar informações pessoais…"></textarea>
+              <label for="community-question-category">Assunto</label>
+              <select id="community-question-category">
+                <option>Geral</option><option>Amizade</option><option>Relacionamentos</option><option>Trabalho</option>
+                <option>Estudos</option><option>Tecnologia</option><option>Hobbies</option><option>Vida</option>
+              </select>
+              <button type="submit" id="community-question-submit" class="primary-action">Publicar pergunta</button>
+              <p id="community-question-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            </form>
+            <div id="community-question-list" class="community-list"></div>
+            <button type="button" id="community-question-more" class="outline-action" hidden>Carregar mais perguntas</button>
+          </div>
         </section>
 
         <section class="view" data-panel="conexoes" aria-labelledby="connections-title" hidden>
