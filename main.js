@@ -22,7 +22,7 @@ try {
   const saved = JSON.parse(sessionStorage.getItem('vibeorbit_portal_session_v1') || 'null');
   if (saved?.access_token && saved?.refresh_token) {
     document.querySelectorAll('a[href="entrar.html"]').forEach(link => {
-      link.textContent = 'Escolher entrada';
+      link.textContent = 'Entrar no Afinzer';
     });
   }
 } catch { /* Nao ha sessao valida armazenada nesta aba. */ }
