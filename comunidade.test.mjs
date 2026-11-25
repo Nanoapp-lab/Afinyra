@@ -99,8 +99,8 @@ await $('community-post-form').fire('submit'); await flush();
 assert.equal(writes.at(-1)?.[0], 'post', 'Publicação usa posts do Android');
 assert.equal(writes.at(-1)?.[1].usuario_id, me);
 
-$('community-questions-tab').fire('click'); await flush();
-assert.ok(find($('community-question-list'), node => node.textContent === 'Como aprender sobre as estrelas?'), 'Perguntas aparecem na Comunidade');
+module.openQuestions(); await flush();
+assert.ok(find($('community-question-list'), node => node.textContent === 'Como aprender sobre as estrelas?'), 'Perguntas aparecem no Afinzer Responde');
 assert.match($('community-my-reputation').textContent, /0 resposta/);
 const q1 = find($('community-question-list'), node => node.className === 'community-question'
   && find(node, child => child.textContent === 'Como aprender sobre as estrelas?'));

@@ -18,7 +18,6 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
   let postPage = 0;
   let questionPage = 0;
   let postFilter = null;
-  let currentTab = 'posts';
   let postRequest = 0;
   let questionRequest = 0;
   const muralCache = new Map();
@@ -58,11 +57,12 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
     if (!reason?.trim()) return;
     const text = `${kind} ${id}: ${reason.trim()}`.slice(0, 990);
     if (text.length < 3) return;
+    const feedback = kind === 'Publicação' ? 'community-feedback' : 'responde-feedback';
     try {
       await api.authenticated('/rest/v1/denuncias', { method: 'POST',
         body: JSON.stringify({ denunciante_id: uid, denunciado_id: owner, motivo: text }) });
-      info('community-feedback', 'Denúncia registrada para análise da moderação.');
-    } catch { info('community-feedback', 'Não foi possível registrar sua denúncia.', true); }
+      info(feedback, 'Denúncia registrada para análise da moderação.');
+    } catch { info(feedback, 'Não foi possível registrar sua denúncia.', true); }
   }
   function reportButton(kind, record) {
     if (record.autor_id === uid || record.usuario_id === uid) return null;
@@ -280,7 +280,7 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
       questionPage = nextPage;
       $('community-question-more').hidden = !Array.isArray(rows) || rows.length <= PAGE_SIZE;
       renderOwnReputation();
-    } catch { if (request === questionRequest) info('community-feedback', 'Não foi possível carregar as perguntas. Tente novamente.', true); }
+    } catch { if (request === questionRequest) info('responde-feedback', 'Não foi possível carregar as perguntas. Tente novamente.', true); }
   }
   function renderOwnReputation() {
     const record = reputation?.get(uid);
@@ -339,8 +339,8 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
               question.resposta_util_id = answer.id;
               reputation = null;
               await showAnswers(question, target);
-              info('community-feedback', 'Resposta reconhecida! Obrigado por valorizar quem ajudou.');
-            } catch { info('community-feedback', 'Não foi possível confirmar a resposta útil.', true); award.disabled = false; }
+              info('responde-feedback', 'Resposta reconhecida! Obrigado por valorizar quem ajudou.');
+            } catch { info('responde-feedback', 'Não foi possível confirmar a resposta útil.', true); award.disabled = false; }
           });
           block.append(award);
         }
@@ -368,8 +368,8 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
             reputation = null;
             await showAnswers(question, target);
             renderOwnReputation();
-            info('community-feedback', 'Resposta publicada. Obrigado por ajudar!');
-          } catch { info('community-feedback', 'Resposta não enviada. Verifique o texto ou se já respondeu.', true); button.disabled = false; }
+            info('responde-feedback', 'Resposta publicada. Obrigado por ajudar!');
+          } catch { info('responde-feedback', 'Resposta não enviada. Verifique o texto ou se já respondeu.', true); button.disabled = false; }
         });
         target.append(form);
       }
@@ -394,23 +394,8 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
     } catch { info('community-question-feedback', 'Não foi possível publicar a pergunta. Seu texto foi preservado.', true); }
     finally { button.disabled = false; }
   }
-  function setTab(tab) {
-    currentTab = tab;
-    $('community-posts-panel').hidden = tab !== 'posts';
-    $('community-questions-panel').hidden = tab !== 'questions';
-    for (const name of ['posts', 'questions']) {
-      const button = $(`community-${name}-tab`);
-      button.classList.toggle('active', name === tab);
-      button.setAttribute('aria-pressed', String(name === tab));
-    }
-    info('community-feedback', '');
-    if (tab === 'posts') void loadPosts();
-    else void loadQuestions();
-  }
-  function openCommunity() { setTab(currentTab); }
-
-  $('community-posts-tab').addEventListener('click', () => setTab('posts'));
-  $('community-questions-tab').addEventListener('click', () => setTab('questions'));
+  function openCommunity() { info('community-feedback', ''); void loadPosts(); }
+  function openQuestions() { info('responde-feedback', ''); void loadQuestions(); }
   $('community-post-form').addEventListener('submit', event => void publishPost(event));
   $('community-question-form').addEventListener('submit', event => void publishQuestion(event));
   $('community-post-more').addEventListener('click', () => void loadPosts(false));
@@ -418,5 +403,5 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
   $('community-post-photo').addEventListener('change', () => {
     info('community-photo-name', $('community-post-photo').files?.[0]?.name || 'Foto opcional · até 10 MB');
   });
-  return { openCommunity, renderMural };
+  return { openCommunity, openQuestions, renderMural };
 }

@@ -7,7 +7,7 @@ import { initCommunity } from './comunidade.mjs';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 import { roomCountdown } from './room-countdown.mjs';
 const $ = id => document.getElementById(id);
-const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'salas', 'perfil', 'chat', 'cegas', 'direta']);
+const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'responde', 'salas', 'perfil', 'chat', 'cegas', 'direta']);
 let api;
 let userProfile = null;
 let isPremium = false;
@@ -319,6 +319,7 @@ function showView(view) {
   if (view === 'conexoes') void discoveries?.openConnections();
   if (view === 'conversas') void directFeature?.openInbox();
   if (view === 'comunidade') void communityFeature?.openCommunity();
+  if (view === 'responde') void communityFeature?.openQuestions();
   if (view === 'cegas') void blindFeature?.enter();
   if (view !== 'chat') history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0, behavior: 'instant' });

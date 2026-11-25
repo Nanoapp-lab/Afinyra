@@ -24,7 +24,7 @@ const roots = new Map();
 const bodyClasses = new Set();
 const bodyStyles = new Map();
 const savedPrefs = new Map();
-const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'salas', 'perfil', 'chat', 'cegas', 'direta'].map(panel => {
+const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'responde', 'salas', 'perfil', 'chat', 'cegas', 'direta'].map(panel => {
   const node = new FakeNode(); node.dataset.panel = panel; return node;
 });
 const nav = panels.map(panel => {
@@ -193,9 +193,10 @@ nav.find(node => node.dataset.view === 'comunidade').fire('click');
 await flush();
 assert.equal(panels.find(panel => panel.dataset.panel === 'comunidade').hidden, false, 'Comunidade é acessível pela navegação principal');
 assert.equal($('community-posts-panel').hidden, false, 'Feed de publicações é a tela inicial da Comunidade');
-$('community-questions-tab').fire('click');
+nav.find(node => node.dataset.view === 'responde').fire('click');
 await flush();
-assert.equal($('community-questions-panel').hidden, false, 'A aba de perguntas e respostas funciona');
+assert.equal(panels.find(panel => panel.dataset.panel === 'responde').hidden, false, 'Afinzer Responde tem sua própria área de perguntas');
+assert.equal(panels.find(panel => panel.dataset.panel === 'comunidade').hidden, true, 'Publicações ficam separadas das perguntas');
 nav.find(node => node.dataset.view === 'conversas').fire('click');
 await flush();
 assert.ok(find($('direct-inbox-list'), node => node.textContent === 'Beatriz Almeida'), 'Caixa de entrada exibe contatos privados');
