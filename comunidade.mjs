@@ -332,9 +332,10 @@ export function initCommunity({ $, api, make, safePhoto, restriction, premium, s
             award.disabled = true;
             try {
               await checkWrite();
-              await api.authenticated(`/rest/v1/comunidade_perguntas?id=eq.${encodeURIComponent(question.id)}`, {
+              const updated = await api.authenticated(`/rest/v1/comunidade_perguntas?id=eq.${encodeURIComponent(question.id)}`, {
                 method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ resposta_util_id: answer.id })
               });
+              if (!Array.isArray(updated) || updated.length !== 1) throw new Error('A resposta ja foi reconhecida ou sua permissao mudou');
               question.resposta_util_id = answer.id;
               reputation = null;
               await showAnswers(question, target);
