@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100a1b">
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://bzjwgvnyfunlwxfzbbbc.supabase.co; img-src 'self' data: https://bzjwgvnyfunlwxfzbbbc.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Afinzer — Minha área</title>
+  <link rel="icon" type="image/svg+xml" href="assets/afinzer-icon.svg">
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="portal.js"></script>
+</head>
+<body data-portal-page="app">
+  <div class="app-frame" id="app-frame">
+    <header class="app-header">
+      <button type="button" id="app-home" class="app-brand" aria-label="Página inicial do Afinzer">
+        <img src="assets/afinzer-logo-animado.gif" width="252" height="74" alt="Afinzer — balões em movimento">
+      </button>
+      <div class="header-actions">
+        <span id="real-plan-pill" class="real-plan-pill">Plano real: verificando…</span>
+        <span id="plan-pill" class="plan-pill">Verificando plano…</span>
+        <label id="test-plan-control" class="plan-preview-control" for="preview-plan" hidden>Modo de teste
+          <select id="preview-plan" aria-label="Alternar plano de teste Free ou Premium">
+            <option value="real">Plano original</option>
+            <option value="free">Testar Free</option>
+            <option value="premium">Testar Premium</option>
+          </select>
+        </label>
+        <a class="header-profile" href="conta.html">Editar perfil</a>
+        <button type="button" id="logout" class="quiet-button">Sair</button>
+      </div>
+    </header>
+
+    <div class="app-layout">
+      <nav class="app-nav" id="app-nav" aria-label="Navegação do Afinzer">
+        <button type="button" class="nav-item" data-view="deck" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span> Deck</button>
+        <button type="button" class="nav-item" data-view="conexoes" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l8.9 8.2 8.8-8.2a5.5 5.5 0 0 0 0-7.8Z"/></svg></span> Conexões</button>
+        <button type="button" class="nav-item" data-view="conversas" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 17a3 3 0 0 1-3 3H9l-5 2v-5a3 3 0 0 1-2-3V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3z"/><path d="M7 9h8M7 13h6"/></svg></span> Conversas</button>
+        <button type="button" class="nav-item" data-view="comunidade" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2 7.5 9H3l6 5-2 8 5-4 5 4-2-8 6-5h-4.5L12 2z"/></svg></span> Comunidade</button>
+        <button type="button" class="nav-item" data-view="salas" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v1"/></svg></span> Salas</button>
+        <button type="button" class="nav-item" data-view="perfil" aria-pressed="false"><span class="nav-icon-wrap" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></span> Perfil</button>
+      </nav>
+
+      <main id="main-content" class="app-content">
+        <p id="app-feedback" class="app-feedback" role="status" aria-live="polite">Verificando sua conta…</p>
+        <div id="preview-plan-note" class="preview-plan-note" hidden>
+          <span id="preview-plan-description">Modo de teste ativo nesta conta autorizada.</span>
+          <button type="button" id="preview-return-real" class="preview-profile-link">Restaurar plano original</button>
+        </div>
+
+        <section class="view" data-panel="inicio" aria-labelledby="home-title">
+          <p class="overline">AFINZER WEB</p>
+          <h1 id="home-title">Sua próxima conversa começa aqui.</h1>
+          <p id="welcome-text" class="lead">Um lugar para descobrir afinidades com calma.</p>
+          <div class="home-feature-grid">
+            <button type="button" class="feature-link feature-main" data-view="conversas">
+              <span class="feature-icon" aria-hidden="true">💬</span><span class="feature-title">Chat Global</span>
+              <span class="feature-text">Entre no papo com quem também está por aqui.</span><span class="feature-foot">Abrir conversa</span>
+            </button>
+            <button type="button" class="feature-link" data-view="salas">
+              <span class="feature-icon" aria-hidden="true">✨</span><span class="feature-title">Salas por assunto</span>
+              <span class="feature-text">Escolha uma sala que combine com você.</span><span class="feature-foot">Ver salas</span>
+            </button>
+            <button type="button" class="feature-link" data-view="perfil">
+              <span class="feature-icon" aria-hidden="true">👤</span><span class="feature-title">Meu perfil</span>
+              <span class="feature-text">Suas fotos, sua história e o que você procura.</span><span class="feature-foot">Ver perfil</span>
+            </button>
+          </div>
+          <div class="home-note" id="home-plan-info">Free: 30 minutos gratuitos por dia compartilhados entre o Chat Global e as salas por assunto. Premium: chats e salas ilimitados.</div>
+        </section>
+
+        <section class="view deck-view" data-panel="deck" aria-labelledby="deck-title" hidden>
+          <div class="deck-heading">
+            <div>
+              <p class="overline">✦ DESCUBRA NOVAS AFINIDADES</p>
+              <h1 id="deck-title">Pessoas para conhecer<span class="deck-heading-dot">.</span></h1>
+              <p class="deck-lead">Cada perfil pode ser o começo de uma boa história. Conheça, curta ou siga para o próximo — no seu ritmo.</p>
+            </div>
+            <div class="deck-heading-symbols" aria-hidden="true">
+              <div class="deck-handshake-accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="url(#afinzer-handshake-ink)" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <defs><linearGradient id="afinzer-handshake-ink" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#FFC2EA"/><stop offset=".48" stop-color="#F1A6FF"/><stop offset="1" stop-color="#B6ABFF"/></linearGradient></defs>
+                  <path d="m11 17 2 2a1 1 0 1 0 3-3"/>
+                  <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/>
+                  <path d="m21 3 1 11h-2"/>
+                  <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/>
+                  <path d="M3 4h8"/>
+                </svg>
+                <small>✦</small>
+              </div>
+              <div class="deck-heading-accent"><span>♡</span><span>✦</span></div>
+            </div>
+          </div>
+          <p id="deck-feedback" class="muted-note" role="status" aria-live="polite">Buscando perfis…</p>
+          <div id="deck-card-area" class="deck-card-area" aria-live="polite"></div>
+          <p class="deck-hint"><span aria-hidden="true">✦</span> No computador, escolha pelos botões. O botão <strong>Passar</strong> avança sem curtir. No aplicativo Android, os gestos continuam como antes.</p>
+        </section>
+
+        <section class="view" data-panel="comunidade" aria-labelledby="community-title" hidden>
+          <p class="overline">✦ PESSOAS, HISTÓRIAS E CONHECIMENTO</p>
+          <h1 id="community-title">Comunidade Afinzer<span class="deck-heading-dot">.</span></h1>
+          <p class="lead">Compartilhe pensamentos e fotos. Faça perguntas, ajude outras pessoas e conquiste estrelas.</p>
+          <div class="community-tabs" role="group" aria-label="Conteúdo da comunidade">
+            <button type="button" id="community-posts-tab" class="community-tab active" aria-pressed="true">💭 Publicações</button>
+            <button type="button" id="community-questions-tab" class="community-tab" aria-pressed="false">❓ Perguntas e respostas</button>
+          </div>
+          <p id="community-feedback" class="muted-note" role="status" aria-live="polite"></p>
+          <div id="community-posts-panel" class="community-section">
+            <form id="community-post-form" class="community-composer">
+              <h2>Qual é seu pensamento de hoje?</h2>
+              <label for="community-post-text">Compartilhe uma ideia, experiência ou foto</label>
+              <textarea id="community-post-text" rows="4" maxlength="5000" placeholder="Escreva algo para a comunidade…"></textarea>
+              <div class="community-composer-actions">
+                <label class="community-photo-picker" for="community-post-photo">📷 Escolher foto
+                  <input id="community-post-photo" type="file" accept="image/jpeg,image/png,image/webp">
+                </label>
+                <span id="community-photo-name" class="muted-note">Foto opcional · até 10 MB</span>
+                <button id="community-post-submit" type="submit" class="primary-action">Publicar</button>
+              </div>
+              <p id="community-post-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            </form>
+            <div id="community-profile-filter" class="community-profile-filter" hidden></div>
+            <div id="community-post-list" class="community-list"></div>
+            <button type="button" id="community-post-more" class="outline-action" hidden>Carregar mais publicações</button>
+          </div>
+          <div id="community-questions-panel" class="community-section" hidden>
+            <div class="community-reputation" id="community-my-reputation">⭐ Sua contribuição: carregando…</div>
+            <p class="muted-note">As estrelas reconhecem respostas válidas: 5 estrelas com 1.000 respostas e 💎 Diamante com 5.000. Só uma resposta por pessoa em cada pergunta.</p>
+            <form id="community-question-form" class="community-composer">
+              <h2>Precisa de uma opinião ou ajuda?</h2>
+              <label for="community-question-title">Sua pergunta</label>
+              <input id="community-question-title" maxlength="180" minlength="10" required placeholder="Ex.: Como encontrar coragem para mudar de profissão?">
+              <label for="community-question-details">Conte um pouco mais (opcional)</label>
+              <textarea id="community-question-details" rows="3" maxlength="2500" placeholder="Explique sua dúvida, sem divulgar informações pessoais…"></textarea>
+              <label for="community-question-category">Assunto</label>
+              <select id="community-question-category">
+                <option>Geral</option><option>Amizade</option><option>Relacionamentos</option><option>Trabalho</option>
+                <option>Estudos</option><option>Tecnologia</option><option>Hobbies</option><option>Vida</option>
+              </select>
+              <button type="submit" id="community-question-submit" class="primary-action">Publicar pergunta</button>
+              <p id="community-question-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            </form>
+            <div id="community-question-list" class="community-list"></div>
+            <button type="button" id="community-question-more" class="outline-action" hidden>Carregar mais perguntas</button>
+          </div>
+        </section>
+
+        <section class="view" data-panel="conexoes" aria-labelledby="connections-title" hidden>
+          <p class="overline">SUAS CONEXÕES</p><h1 id="connections-title">Pessoas que despertam interesse</h1>
+          <div class="connection-tabs" role="tablist" aria-label="Tipos de conexões">
+            <button type="button" class="connection-tab active" data-connection-tab="recebidas" role="tab" aria-selected="true">Recebidas</button>
+            <button type="button" class="connection-tab" data-connection-tab="enviadas" role="tab" aria-selected="false">Enviadas</button>
+            <button type="button" class="connection-tab" data-connection-tab="reciprocas" role="tab" aria-selected="false">Recíprocas</button>
+          </div>
+          <p id="connections-feedback" class="muted-note" role="status" aria-live="polite">Buscando suas conexões…</p>
+          <div id="connections-list" class="connections-list"></div>
+        </section>
+
+        <section class="view" data-panel="conversas" aria-labelledby="conversations-title" hidden>
+          <p class="overline">CONVERSE COM CALMA</p><h1 id="conversations-title">Conversas</h1>
+          <p class="lead">O Chat Global usa as mesmas mensagens do aplicativo Android.</p>
+          <div class="conversation-actions">
+            <button type="button" id="open-global" class="primary-action">Entrar no Chat Global</button>
+            <button type="button" id="conversas-blind" class="outline-action">🎭 Conversa às Cegas · Premium</button>
+          </div>
+          <div class="direct-inbox">
+            <div class="direct-inbox-title"><div><p class="overline">EXCLUSIVO PREMIUM</p><h2>💬 Minhas conversas privadas</h2></div><button type="button" id="direct-refresh" class="outline-action">Atualizar conversas</button></div>
+            <p id="direct-inbox-feedback" class="muted-note" role="status" aria-live="polite"></p>
+            <div id="direct-inbox-list" class="direct-inbox-list"></div>
+          </div>
+        </section>
+
+        <section class="view" data-panel="direta" aria-labelledby="direct-title" hidden>
+          <div class="chat-topbar"><button type="button" id="direct-back" class="back-button">← Voltar</button><span class="direct-premium-label">👑 Conversa privada · Premium</span></div>
+          <div class="chat-heading"><div><p class="overline">MENSAGENS DIRETAS</p><h1 id="direct-title">Conversa privada</h1></div><span id="direct-status" class="chat-time">Conectando…</span></div>
+          <p id="direct-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
+          <div id="direct-messages" class="chat-messages" role="log" aria-label="Mensagens privadas"></div>
+          <form id="direct-form" class="chat-form">
+            <label for="direct-input" class="sr-only">Mensagem privada</label>
+            <textarea id="direct-input" rows="2" maxlength="1000" placeholder="Escreva uma mensagem para esta pessoa…" disabled required></textarea>
+            <button type="submit" id="direct-send" class="primary-action" disabled>Enviar</button>
+          </form>
+          <p class="chat-keyboard-hint">Enter envia · Shift+Enter pula uma linha. A pessoa poderá ler e responder pelo site ou aplicativo.</p>
+        </section>
+
+        <section class="view" data-panel="salas" aria-labelledby="rooms-title" hidden>
+          <p class="overline">ENCONTRE SUA TURMA</p><h1 id="rooms-title">Salas Vivas</h1>
+          <p class="lead">Encontre pessoas por assunto ou cidade. As salas e as conversas são compartilhadas com o aplicativo Android.</p>
+          <p id="rooms-plan-note" class="rooms-plan-note">Conferindo seu plano…</p>
+          <div class="rooms-feature-actions">
+            <button type="button" id="rooms-global" class="rooms-global-button"><span aria-hidden="true">💬</span><span><strong>Chat Global</strong><small>Converse com toda a comunidade</small></span></button>
+            <button type="button" id="rooms-blind" class="rooms-blind-button"><span aria-hidden="true">🎭</span><span><strong>Conversa às Cegas</strong><small>Conheça alguém pelas respostas · Premium</small></span></button>
+          </div>
+          <div class="rooms-toolbar">
+            <label for="rooms-search" class="sr-only">Buscar salas por nome, assunto ou cidade</label>
+            <input id="rooms-search" type="search" autocomplete="off" placeholder="Buscar salas, assuntos ou cidades…">
+            <div class="rooms-tabs" role="group" aria-label="Filtrar salas">
+              <button type="button" class="rooms-tab active" data-room-filter="todas" aria-pressed="true">✨ Todas</button>
+              <button type="button" class="rooms-tab" data-room-filter="cidade" aria-pressed="false">📍 Cidade</button>
+              <button type="button" class="rooms-tab" data-room-filter="assunto" aria-pressed="false">💬 Assunto</button>
+              <button type="button" class="rooms-tab" data-room-filter="minhas" aria-pressed="false">★ Minhas</button>
+            </div>
+          </div>
+          <div class="rooms-action-row">
+            <button type="button" id="rooms-create" class="primary-action">＋ Criar sala</button>
+            <button type="button" id="rooms-rules" class="outline-action">ⓘ Regras</button>
+          </div>
+          <p id="rooms-create-note" class="muted-note"></p>
+          <p id="rooms-count" class="rooms-count" aria-live="polite"></p>
+          <p id="rooms-feedback" class="muted-note" role="status" aria-live="polite">Carregando salas…</p>
+          <div id="rooms-list" class="rooms-list"></div>
+          <div class="rooms-pages" aria-label="Navegação entre páginas de salas">
+            <button type="button" id="rooms-previous" class="outline-action">← Anterior</button>
+            <span id="rooms-page-status" aria-live="polite">Página 1</span>
+            <button type="button" id="rooms-next" class="outline-action">Próxima →</button>
+          </div>
+        </section>
+
+        <section class="view blind-view" data-panel="cegas" aria-labelledby="blind-title" hidden>
+          <p class="overline">🎭 CONVERSA ÀS CEGAS · PREMIUM</p>
+          <h1 id="blind-title">Primeiro a conversa. Depois, quem sabe, o rosto.</h1>
+          <p class="lead">Responda três perguntas. Conheça respostas anônimas, envie ou aceite um convite e converse. Os perfis só aparecem se ambos aceitarem a revelação.</p>
+          <p id="blind-feedback" class="muted-note" role="status" aria-live="polite"></p>
+          <div id="blind-setup" class="blind-panel">
+            <div class="blind-step" id="blind-step">Pergunta 1 de 3</div>
+            <h2 id="blind-question">Preparando sua pergunta…</h2>
+            <label for="blind-answer" class="sr-only">Sua resposta</label>
+            <textarea id="blind-answer" rows="4" maxlength="500" placeholder="Conte um pouco sobre você, sem revelar seu nome ou contato."></textarea>
+            <div class="blind-actions">
+              <button id="blind-skip" type="button" class="outline-action">↻ Trocar pergunta</button>
+              <button id="blind-review" type="button" class="outline-action">Rever respostas</button>
+              <button id="blind-continue" type="button" class="primary-action">Próxima pergunta</button>
+            </div>
+          </div>
+          <div id="blind-deck" class="blind-panel" hidden>
+            <h2>💜 Descubra pessoas pelas respostas</h2>
+            <p id="blind-deck-status" class="muted-note">Procurando…</p>
+            <div id="blind-candidate" class="blind-answer-card"></div>
+            <div class="blind-actions">
+              <button id="blind-next" type="button" class="outline-action">Próxima pessoa</button>
+              <button id="blind-invite" type="button" class="primary-action">💌 Quero conversar</button>
+              <button id="blind-pause" type="button" class="outline-action">Pausar busca</button>
+            </div>
+            <div id="blind-incoming" class="blind-incoming" hidden>
+              <h3>💌 Alguém quer conversar com você!</h3>
+              <div id="blind-invitation-answers" class="blind-answer-card"></div>
+              <div class="blind-actions"><button id="blind-decline" type="button" class="outline-action">Não, obrigado</button><button id="blind-accept" type="button" class="primary-action">Aceitar convite</button></div>
+            </div>
+          </div>
+          <div id="blind-chat" class="blind-panel" hidden>
+            <div class="blind-chat-top"><h2>🎭 Conversa anônima</h2><span id="blind-chat-status">Validando conversa…</span></div>
+            <div id="blind-other-answers" class="blind-other-answers"></div>
+            <div id="blind-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa às cegas"></div>
+            <form id="blind-chat-form" class="chat-form">
+              <label for="blind-chat-input" class="sr-only">Mensagem anônima</label><textarea id="blind-chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…"></textarea>
+              <button id="blind-send" type="submit" class="primary-action">Enviar</button>
+            </form>
+            <div class="blind-actions blind-chat-controls">
+              <button id="blind-reveal" type="button" class="outline-action">👁 Solicitar revelação</button>
+              <button id="blind-profile" type="button" class="outline-action" hidden>Ver perfil revelado</button>
+              <button id="blind-report" type="button" class="outline-action">Denunciar</button>
+              <button id="blind-block" type="button" class="outline-action danger-action">Bloquear</button>
+              <button id="blind-end" type="button" class="outline-action danger-action">Encerrar conversa</button>
+            </div>
+          </div>
+          <button id="blind-back" type="button" class="back-button">← Voltar às salas</button>
+        </section>
+
+        <section class="view" data-panel="perfil" aria-labelledby="profile-title" hidden>
+          <p class="overline">SEU PERFIL COMPLETO</p><h1 id="profile-title">Sua história, do seu jeito.</h1>
+          <p class="lead">Veja as informações e as fotos que você cadastrou no Afinzer, seja sua conta Free ou Premium.</p>
+          <div class="own-profile-notice">✦ Esta é a visualização dos seus próprios dados. Ela não depende da prévia de planos no topo e não mostra informações privadas de outras pessoas.</div>
+          <div class="profile-card profile-hero"><div class="profile-avatar" id="profile-avatar" aria-hidden="true">♡</div>
+            <div class="profile-copy"><p class="overline">MEU PERFIL AFINZER</p><h2 id="profile-name">Seu perfil Afinzer</h2>
+              <p id="profile-city">Carregando dados…</p><p id="profile-age" class="profile-age"></p>
+              <a href="conta.html" class="primary-action profile-edit">✎ Editar meus dados e fotos</a></div>
+          </div>
+          <p id="profile-data-status" class="muted-note" role="status" aria-live="polite">Carregando seus dados cadastrados…</p>
+          <div class="profile-section-heading"><div><p class="overline">ATÉ SEIS FOTOS</p><h2>Minha galeria</h2></div><a href="conta.html" class="profile-text-link">Gerenciar fotos →</a></div>
+          <div id="profile-gallery" class="profile-gallery" aria-label="Suas fotos cadastradas"></div>
+          <div class="own-music-card"><div><p class="overline">♫ MÚSICA AUTOMÁTICA</p><h2>Minha trilha sonora</h2></div><p id="profile-music">Verificando compartilhamento de música…</p></div>
+          <article class="own-info-card own-app-about">
+            <h2>✨ Sobre mim</h2>
+            <p class="own-presentation-text"><strong>Apresentação:</strong> <span id="profile-presentation">Carregando…</span></p>
+            <h3>🎨 HOBBIES</h3><ul id="profile-hobbies" class="profile-app-list"></ul>
+            <h3>🗣️ IDIOMAS</h3><ul id="profile-languages" class="profile-app-list"></ul>
+            <div id="profile-facts" class="profile-facts-list"></div>
+          </article>
+          <div class="profile-section-heading"><div><p class="overline">SEUS DADOS NO AFINZER</p><h2>Editar informações</h2></div><a href="conta.html" class="profile-text-link">Atualizar informações →</a></div>
+          <div class="home-note">Seu perfil segue a visualização Free ou Premium do aplicativo. Você pode editar seus dados cadastrados em qualquer plano.</div>
+          <button type="button" id="wallpaper-profile-open" class="outline-action wallpaper-profile-button" hidden>🖼 Personalizar o fundo da minha tela · Premium</button>
+        </section>
+
+        <section class="view" data-panel="chat" aria-labelledby="chat-title" hidden>
+          <div class="chat-topbar"><button type="button" id="chat-back" class="back-button">← Voltar</button><div class="chat-appearance-actions"><button type="button" id="chat-name-color" class="chat-color-button">🎨 Cor do nome</button><button type="button" id="wallpaper-chat-open" class="chat-color-button" hidden>🖼 Fundo da tela</button></div></div>
+          <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><div class="chat-status"><span id="chat-time" class="chat-time">Conferindo acesso…</span><span id="chat-room-countdown" class="chat-room-countdown" aria-label="Tempo restante da sala" hidden></span></div></div>
+          <p id="chat-expiration-warning" class="chat-expiration-warning" role="status" aria-live="polite" hidden></p>
+          <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
+          <div id="chat-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa"></div>
+          <form id="chat-form" class="chat-form"><label for="chat-input" class="sr-only">Escreva sua mensagem</label>
+            <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" aria-describedby="chat-keyboard-hint" disabled required></textarea>
+            <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
+          </form>
+          <p id="chat-keyboard-hint" class="chat-keyboard-hint">Enter envia a mensagem · Shift+Enter pula uma linha</p>
+        </section>
+
+        <dialog id="name-color-dialog" class="name-color-dialog" aria-labelledby="name-color-title">
+          <div class="picker-heading"><div><p class="overline">PERSONALIZE SEU NOME</p><h2 id="name-color-title">🎨 Escolha sua cor</h2></div><button type="button" id="name-color-close" class="quiet-button">Fechar</button></div>
+          <p>Experimente as opções Premium. A cor salva aparecerá para outras pessoas no site e no aplicativo.</p>
+          <p id="name-color-demo" class="name-color-demo">Exemplo do seu nome</p>
+          <div id="name-color-options" class="name-color-options"></div>
+          <p id="name-color-feedback" class="muted-note" role="status" aria-live="polite"></p>
+        </dialog>
+
+        <dialog id="wallpaper-dialog" class="name-color-dialog" aria-labelledby="wallpaper-title">
+          <div class="picker-heading"><div><p class="overline">EXCLUSIVO PREMIUM</p><h2 id="wallpaper-title">🖼 Personalizar o fundo da tela</h2></div><button type="button" id="wallpaper-close" class="quiet-button">Fechar</button></div>
+          <p>Escolha um dos fundos abaixo ou use uma foto sua. A mudança aparece apenas para você, em todas as áreas do site, incluindo as salas.</p>
+          <div id="wallpaper-options" class="wallpaper-options" role="group" aria-label="Fundos disponíveis"></div>
+          <label class="wallpaper-upload" for="wallpaper-file">📷 Escolher foto do meu dispositivo</label>
+          <input id="wallpaper-file" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="wallpaper-privacy-note">
+          <p id="wallpaper-privacy-note" class="wallpaper-privacy-note">A foto fica somente neste navegador e não é enviada ao Supabase. Não aparecerá no aplicativo ou em outros dispositivos.</p>
+          <p id="wallpaper-feedback" class="muted-note" role="status" aria-live="polite"></p>
+        </dialog>
+
+        <dialog id="create-room-dialog" class="create-room-dialog" aria-labelledby="create-room-title">
+          <div class="picker-heading"><h2 id="create-room-title">＋ Criar sala</h2><button type="button" id="create-room-close" class="quiet-button">Fechar</button></div>
+          <form id="create-room-form">
+            <label for="create-room-type">Tipo de sala</label>
+            <select id="create-room-type" required><option value="assunto">Sala por assunto</option><option value="cidade">Sala por cidade</option></select>
+            <label for="create-room-name">Nome da sala</label>
+            <input id="create-room-name" maxlength="80" minlength="3" required placeholder="Ex.: Amizades e boas conversas">
+            <label for="create-room-detail" id="create-room-detail-label">Assunto da sala</label>
+            <input id="create-room-detail" maxlength="80" minlength="2" required placeholder="Ex.: Música, viagens, filmes…">
+            <label for="create-room-duration">Por quanto tempo a sala ficará aberta?</label>
+            <select id="create-room-duration" required>
+              <option value="2">2 horas</option>
+              <option value="12">12 horas</option>
+              <option value="24" selected>24 horas</option>
+            </select>
+            <p class="room-lifetime-note">Duração máxima de 24 horas. A sala encerra automaticamente ao terminar o prazo; não será possível prolongá-la depois de criada.</p>
+            <p id="create-room-feedback" role="status" aria-live="polite"></p>
+            <button type="submit" id="create-room-save" class="primary-action">Criar sala</button>
+          </form>
+        </dialog>
+
+        <dialog id="discovery-dialog" class="discovery-dialog" aria-labelledby="discovery-title">
+          <div class="discovery-dialog-top">
+            <div><p class="discovery-dialog-eyebrow">✦ AFINZER · CONHEÇA MELHOR</p><h2 id="discovery-title">Perfil Afinzer</h2></div>
+            <button type="button" id="discovery-close" class="quiet-button" aria-label="Fechar perfil">✕ Fechar</button>
+          </div>
+          <div id="discovery-details"></div>
+          <div class="discovery-safety"><span>Segurança e privacidade</span><div><button type="button" id="discovery-report" class="outline-action">Denunciar perfil</button><button type="button" id="discovery-block" class="outline-action danger-action">Bloquear perfil</button></div></div>
+        </dialog>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

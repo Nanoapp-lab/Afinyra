@@ -31,7 +31,8 @@ function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 async function http(path, options = {}, token = null) {
   const headers = { apikey: PUBLIC_KEY, Accept: 'application/json', ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (options.body) headers['Content-Type'] = 'application/json';
+  // JSON para a API de dados; fotos do mural usam o MIME binario original.
+  if (options.body && !('Content-Type' in headers)) headers['Content-Type'] = 'application/json';
   const response = await fetch(`${API_BASE}${path}`, {
     ...options, headers, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'
   });
@@ -44,7 +45,9 @@ async function http(path, options = {}, token = null) {
     throw error;
   }
   if (response.status === 204) return null;
-  return response.json();
+  const raw = await response.text();
+  // O PostgREST pode confirmar INSERT com 201 e corpo vazio (return=minimal).
+  return raw ? JSON.parse(raw) : null;
 }
 async function refreshSession(current) {
   const next = await http('/auth/v1/token?grant_type=refresh_token', {
@@ -99,6 +102,22 @@ async function redirectToLogin() {
 }
 
 async function initLogin() {
+  // A escolha não aparece antes da autenticação, nem para usuários comuns.
+  // O e-mail apenas identifica qual conta mostra a escolha; permissões de
+  // moderação continuam conferidas pelo RPC protegido no Supabase.
+  async function finishLogin(user) {
+    if (user?.email?.trim().toLowerCase() === '01juliano02@gmail.com' && await isAdmin()) {
+      element('login-card').hidden = true;
+      element('entry-choices').hidden = false;
+      element('entry-kicker').textContent = 'CONTA DE MODERAÇÃO';
+      element('entry-heading').textContent = 'Como você quer entrar?';
+      element('entry-intro').textContent = 'Sua conta pode usar o Afinzer normalmente ou abrir a moderação.';
+      setMessage('');
+      return;
+    }
+    location.replace('app.html');
+  }
+  element('choice-logout').addEventListener('click', signOut);
   const form = element('login-form');
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -112,11 +131,29 @@ async function initLogin() {
       });
       saveSession(data);
       element('senha').value = '';
-      location.replace('conta.html');
+      const user = await currentUser();
+      if (!user?.id) throw new Error('Usuário não confirmado');
+      await finishLogin(user);
     } catch {
       setMessage('Não foi possível entrar. Confira o e-mail, a senha e a conexão.', true);
     } finally { button.disabled = false; }
   });
+
+  // Sessões já autenticadas passam pela mesma decisão de acesso.
+  if (session()?.refresh_token) {
+    setMessage('Verificando sua sessão atual...');
+    try {
+      const user = await currentUser();
+      if (user?.id) {
+        await finishLogin(user);
+        return;
+      }
+    } catch (error) {
+      // Somente falhas de autorizacao comprovadas invalidam a sessao aqui.
+      if (error.status === 401 || error.status === 403) clearSession();
+    }
+    setMessage('');
+  }
 }
 async function initAccount() {
   attachLogout();
@@ -128,7 +165,32 @@ async function initAccount() {
     setMessage('Sessão autenticada.');
     try { element('admin-link').hidden = !(await isAdmin()); }
     catch { element('admin-link').hidden = true; }
+    try {
+      const { initProfile } = await import('./perfil.js');
+      await initProfile({ authenticated, getToken, user, apiBase: API_BASE, publicKey: PUBLIC_KEY });
+    } catch {
+      element('profile-panel').hidden = false;
+      element('profile-submit').disabled = true;
+      element('profile-status').textContent = 'Não foi possível abrir o editor. Recarregue a página para tentar novamente.';
+    }
   } catch { redirectToLogin(); }
+}
+
+async function initApp() {
+  attachLogout();
+  try {
+    const user = await currentUser();
+    if (!user?.id) return redirectToLogin();
+    const { initWebApp } = await import('./app.js');
+    await initWebApp({ authenticated, getToken, user });
+  } catch (error) {
+    if (error?.status === 401 || !session()) return redirectToLogin();
+    const target = element('app-feedback');
+    if (target) {
+      target.textContent = 'Não foi possível confirmar sua conta agora. Confira sua conexão e atualize a página.';
+      target.classList.add('error');
+    }
+  }
 }
 
 function make(tag, className, value) {
@@ -212,7 +274,7 @@ async function submitMeasure(item, select, reason, feedback, button) {
   const ok = window.confirm(`Aplicar: ${actionName}\nConta: ${moderationProfile(item.denunciado)}\n\nMotivo: ${justification}\n\nConfirmar esta medida administrativa?`);
   if (!ok) return;
   button.disabled = true;
-  feedback.textContent = 'Aplicando medida no Supabase...';
+  feedback.textContent = 'Aplicando medida...';
   try {
     await authenticated('/functions/v1/vibeorbit-moderacao', {
       method: 'POST', body: JSON.stringify({
@@ -387,7 +449,7 @@ function renderReport(item) {
   const sanctionFeedback = make('p', 'portal-subtle'); sanctionFeedback.setAttribute('role','status');
   sanctionButton.addEventListener('click', () => submitMeasure(item, sanctionSelect, justification, sanctionFeedback, sanctionButton));
   card.append(sanctionTitle, sanctionHint, sanctionField, justificationField, sanctionButton, sanctionFeedback);
-  if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis: atualização do Supabase ainda não confirmada.'));
+  if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis. Tente novamente mais tarde.'));
   return card;
 }
 async function loadAudit() {
@@ -445,7 +507,7 @@ async function loadReports() {
     renderSanctionHistory(actions);
     await loadAudit();
   } catch {
-    target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique a permissão administrativa e a integração do Supabase.'));
+    target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique sua permissão administrativa e tente novamente.'));
   }
 }
 async function initAdmin() {
@@ -466,5 +528,6 @@ async function initAdmin() {
 
 const page = document.body.dataset.portalPage;
 if (page === 'login') initLogin();
+if (page === 'app') initApp();
 if (page === 'account') initAccount();
 if (page === 'admin') initAdmin();
