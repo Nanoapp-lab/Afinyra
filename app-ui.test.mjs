@@ -24,7 +24,7 @@ const roots = new Map();
 const bodyClasses = new Set();
 const bodyStyles = new Map();
 const savedPrefs = new Map();
-const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas', 'direta'].map(panel => {
+const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'salas', 'perfil', 'chat', 'cegas', 'direta'].map(panel => {
   const node = new FakeNode(); node.dataset.panel = panel; return node;
 });
 const nav = panels.map(panel => {
@@ -189,6 +189,13 @@ assert.equal(directSent.at(-1)?.p_conteudo, 'Oi Beatriz!', 'Enter envia conversa
 assert.equal($('direct-input').value, '', 'Campo é limpo depois do envio confirmado');
 $('direct-back').fire('click');
 assert.equal(panels.find(panel => panel.dataset.panel === 'deck').hidden, false, 'Voltar retorna ao Deck');
+nav.find(node => node.dataset.view === 'comunidade').fire('click');
+await flush();
+assert.equal(panels.find(panel => panel.dataset.panel === 'comunidade').hidden, false, 'Comunidade é acessível pela navegação principal');
+assert.equal($('community-posts-panel').hidden, false, 'Feed de publicações é a tela inicial da Comunidade');
+$('community-questions-tab').fire('click');
+await flush();
+assert.equal($('community-questions-panel').hidden, false, 'A aba de perguntas e respostas funciona');
 nav.find(node => node.dataset.view === 'conversas').fire('click');
 await flush();
 assert.ok(find($('direct-inbox-list'), node => node.textContent === 'Beatriz Almeida'), 'Caixa de entrada exibe contatos privados');
