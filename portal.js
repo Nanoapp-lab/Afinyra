@@ -101,6 +101,17 @@ async function redirectToLogin() {
 }
 
 async function initLogin() {
+  const destination = new URLSearchParams(location.search).get('destino');
+  if (!['app','moderacao'].includes(destination)) return;
+  const moderatorLogin = destination === 'moderacao';
+  const nextPage = moderatorLogin ? 'admin.html' : 'app.html';
+  element('entry-choices').hidden = true;
+  element('login-card').hidden = false;
+  element('login-title').textContent = moderatorLogin ? 'Entrar na moderação' : 'Entrar no Afinzer';
+  element('login-description').textContent = moderatorLogin
+    ? 'Área exclusiva de moderadores autorizados. Entrar aqui não concede permissão administrativa.'
+    : 'Use a conta normal do Afinzer. Você começará pelo Deck e poderá explorar os demais recursos.';
+  element('create-account-actions').hidden = moderatorLogin;
   const form = element('login-form');
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -114,20 +125,27 @@ async function initLogin() {
       });
       saveSession(data);
       element('senha').value = '';
-      location.replace('app.html');
+      if (moderatorLogin && !(await isAdmin())) {
+        setMessage('Esta conta não tem permissão de moderação. Escolha “Entrar no Afinzer” para usar o Deck.', true);
+        return;
+      }
+      location.replace(nextPage);
     } catch {
       setMessage('Não foi possível entrar. Confira o e-mail, a senha e a conexão.', true);
     } finally { button.disabled = false; }
   });
 
-  // A navegacao de volta ao site nao encerra a conta. Se a sessao ainda
-  // estiver valida, voltar para o login deve abrir o perfil diretamente.
+  // Uma sessão existente respeita a escolha explícita de entrada.
   if (session()?.refresh_token) {
     setMessage('Verificando sua sessao atual...');
     try {
       const user = await currentUser();
       if (user?.id) {
-        location.replace('app.html');
+        if (moderatorLogin && !(await isAdmin())) {
+          setMessage('A conta conectada não é moderadora. Entre com a conta administrativa ou escolha o Afinzer.', true);
+          return;
+        }
+        location.replace(nextPage);
         return;
       }
     } catch (error) {
