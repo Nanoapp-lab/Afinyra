@@ -729,5 +729,5 @@ export async function initWebApp(context) {
     restriction, leaveView: () => showView('salas') });
   friendly('');
   const start = location.hash.slice(1);
-  showView(start !== 'chat' && sections.has(start) ? start : 'inicio');
+  showView(start !== 'chat' && sections.has(start) ? start : 'deck');
 }
