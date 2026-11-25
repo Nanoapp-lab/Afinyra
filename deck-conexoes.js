@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 // Premium. Não buscar public.usuarios de terceiros para contornar essa regra.
 const PROFILE_SELECT = 'id,nome,mensagem_dia,cidade_atual,foto_url,fotos_perfil,idade_publica,is_online,genero,buscando,altura,cidade_natal,profissao,empresa,escolaridade,filhos,fumante,bebida,religiao,idiomas,hobbies,musica_atual,artista_atual';
 
-export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, getPreviewPlan = () => 'real' }) {
+export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, onDirectChat, getPreviewPlan = () => 'real' }) {
   const uid = api.user.id;
   const isPreview = () => getPreviewPlan() !== 'real';
   const looksPremium = () => getPreviewPlan() === 'real' ? premium : getPreviewPlan() === 'premium';
@@ -193,6 +193,15 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     like.disabled = changingDeck;
     like.addEventListener('click', () => void likeCurrent());
     controls.append(pass, like);
+    if (premium && !isPreview() && typeof onDirectChat === 'function') {
+      controls.classList.add('has-direct');
+      const talk = make('button', 'deck-talk-action', '💬 Conversar');
+      talk.type = 'button';
+      talk.disabled = changingDeck;
+      talk.setAttribute('aria-label', `Iniciar conversa privada Premium com ${name(person)}`);
+      talk.addEventListener('click', () => { if (!changingDeck) void onDirectChat({ id: person.id, nome: name(person), origin: 'deck' }); });
+      controls.append(talk);
+    }
     card.append(controls);
 
     const panel = make('aside', 'deck-profile-panel');
@@ -564,6 +573,12 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium, 
     profile.type = 'button';
     profile.addEventListener('click', () => showProfile(id));
     actions.append(profile);
+    if (premium && !isPreview() && typeof onDirectChat === 'function') {
+      const talk = make('button', null, '💬 Conversar');
+      talk.type = 'button';
+      talk.addEventListener('click', () => void onDirectChat({ id, nome: name(person), origin: 'conexoes' }));
+      actions.append(talk);
+    }
     if (category === 'recebidas') {
       const dismiss = make('button', 'dismiss-button', '✕ Dispensar');
       dismiss.type = 'button';
