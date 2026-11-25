@@ -19,6 +19,9 @@ let currentView = 'inicio';
 let discoveries = null;
 let blindFeature = null;
 let previewPlan = 'real';
+let testAllowed = false;
+let originalPremium = false;
+let switchingTestPlan = false;
 let allRooms = [];
 let roomFilter = 'todas';
 let roomSearch = '';
@@ -30,7 +33,6 @@ let roomSearchTimer = null;
 let nameColors = new Map();
 let lastColorSync = 0;
 let changingNameColor = false;
-let previewNameColor = null;
 
 const NAME_COLORS = [
   { name: 'Ciano', hex: '#00D9FF' },
@@ -43,7 +45,7 @@ const NAME_COLORS = [
   { name: 'Branco', hex: '#FFFFFF' }
 ];
 const validColor = value => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value.toUpperCase() : null;
-const visualPremium = () => previewPlan === 'real' ? isPremium : previewPlan === 'premium';
+const visualPremium = () => isPremium;
 const isSubjectRoom = room => !String(room.cidade || '').trim() && String(room.id || '').startsWith('public:assunto_');
 
 function make(tag, className, value) {
@@ -112,14 +114,6 @@ function renderOwnMusic() {
   const target = $('profile-music');
   if (!planVerified) {
     target.textContent = 'Não foi possível confirmar o plano para consultar a música.';
-    return;
-  }
-  if (previewPlan === 'free') {
-    target.textContent = 'Prévia Free: a música automática não aparece para outras pessoas neste plano. Sua assinatura real permanece inalterada.';
-    return;
-  }
-  if (previewPlan === 'premium' && !isPremium) {
-    target.textContent = 'Prévia Premium: aqui apareceria a música compartilhada. Dados reais de música só ficam disponíveis com Premium ativo.';
     return;
   }
   if (!isPremium) {
@@ -223,44 +217,49 @@ async function loadProfile() {
 }
 async function loadPlan() {
   try {
-    isPremium = (await rpc('meu_premium_ativo')) === true;
+    const [effective, testState] = await Promise.all([rpc('meu_premium_ativo'), rpc('meu_plano_teste')]);
+    isPremium = effective === true;
+    testAllowed = testState?.autorizado === true;
+    originalPremium = testState?.premium_real === true;
+    previewPlan = testAllowed && ['free','premium'].includes(testState?.modo) ? testState.modo : 'real';
+    $('preview-plan').value = previewPlan;
     planVerified = true;
   } catch {
     planVerified = false;
+    testAllowed = false;
   }
   updatePlanPresentation();
   renderOwnMusic();
 }
 function updatePlanPresentation() {
-  const simulated = previewPlan !== 'real';
-  const realLabel = !planVerified ? 'Plano real indisponível' : isPremium ? '👑 Premium real' : '♡ Free real';
+  const testing = testAllowed && previewPlan !== 'real';
+  const realLabel = !planVerified ? 'Plano indisponível' : originalPremium ? '👑 Premium original' : '♡ Free original';
   $('real-plan-pill').textContent = realLabel;
-  $('plan-pill').textContent = simulated
-    ? (visualPremium() ? '👑 Premium · somente visual' : '♡ Free · somente visual')
+  $('plan-pill').textContent = testing
+    ? (isPremium ? '👑 Premium · TESTE' : '♡ Free · TESTE')
     : (!planVerified ? 'Plano indisponível' : (isPremium ? '👑 Premium' : '♡ Free'));
-  $('preview-plan-note').hidden = !simulated;
-  $('preview-plan-description').textContent = simulated
-    ? `${visualPremium() ? '👑 Premium' : '♡ Free'} é apenas uma demonstração de aparência. Seu acesso continua ${realLabel}. Para entrar em salas, conversar ou criar salas, selecione “Meu plano real”. A prévia nunca altera assinaturas nem grava dados de teste no Supabase.`
+  $('test-plan-control').hidden = !testAllowed;
+  $('preview-plan-note').hidden = !testing;
+  $('preview-plan-description').textContent = testing
+    ? `Modo ${isPremium ? 'Premium' : 'Free'} de TESTE ativo. As permissões são aplicadas de verdade nesta conta, enquanto a assinatura original permanece ${realLabel}. Você pode alternar novamente ou restaurar o plano original.`
     : '';
-  $('home-plan-info').textContent = visualPremium()
-    ? `Premium: Chat Global e salas ilimitados, salas por cidade e Conversa às Cegas liberadas.${simulated ? ' Demonstração visual; seu plano real não mudou.' : ''}`
-    : `Free: 30 minutos grátis diários compartilhados entre o Chat Global e as salas por assunto. Salas por cidade e Conversa às Cegas bloqueadas.${simulated ? ' Demonstração visual.' : ''}`;
-  $('rooms-plan-note').textContent = visualPremium()
-    ? `👑 Premium: Chat Global e salas ilimitados, incluindo salas por cidade.${simulated ? ' Prévia da aparência; entradas reais ficam pausadas.' : ''}`
-    : `♡ Free: 30 min/dia compartilhados entre Global e salas por assunto. Salas por cidade são Premium.${simulated ? ' Prévia da aparência; entradas reais ficam pausadas.' : ''}`;
-  $('rooms-create-note').textContent = simulated
-    ? `Comparação visual ${visualPremium() ? 'Premium' : 'Free'}: não é possível criar uma sala nesta prévia. Volte ao plano real para usar sua conta.`
-    : !planVerified
+  $('home-plan-info').textContent = isPremium
+    ? `Premium: Chat Global e salas ilimitados, salas por cidade e Conversa às Cegas liberadas.${testing ? ' TESTE ativo.' : ''}`
+    : `Free: 30 minutos grátis diários compartilhados entre o Chat Global e as salas por assunto. Salas por cidade e Conversa às Cegas bloqueadas.${testing ? ' TESTE ativo.' : ''}`;
+  $('rooms-plan-note').textContent = isPremium
+    ? `👑 Premium: Chat Global e salas ilimitados, incluindo salas por cidade.${testing ? ' Modo de teste.' : ''}`
+    : `♡ Free: 30 min/dia compartilhados entre Global e salas por assunto. Salas por cidade são Premium.${testing ? ' Modo de teste.' : ''}`;
+  $('rooms-create-note').textContent = !planVerified
     ? 'Não foi possível conferir sua assinatura. Recarregue para tentar criar uma sala.'
-    : isPremium ? 'Sua conta Premium pode criar uma sala. As novas salas aparecem também no Android.'
-      : 'Criar salas requer Premium ativo de verdade. A opção de prévia não altera sua assinatura.';
-  const blindEnabled = !simulated && planVerified && isPremium;
+    : isPremium ? 'Seu plano Premium permite criar salas. As novas salas aparecem também no Android.'
+      : 'Criar salas requer Premium. Altere para Premium no seletor de testes, se sua conta estiver autorizada.';
+  const blindEnabled = planVerified && isPremium;
   $('rooms-blind').disabled = !blindEnabled;
-  $('rooms-blind').title = blindEnabled ? 'Entrar na Conversa às Cegas' : simulated ? 'A comparação é somente visual. Volte ao plano real.' : 'Conversa às Cegas exige Premium real.';
+  $('rooms-blind').title = blindEnabled ? 'Entrar na Conversa às Cegas' : 'Conversa às Cegas exige Premium.';
   $('conversas-blind').disabled = !blindEnabled;
   $('conversas-blind').title = $('rooms-blind').title;
-  $('rooms-create').disabled = simulated || !planVerified || !isPremium;
-  $('rooms-create').title = simulated ? 'A prévia não cria salas. Volte ao plano real.' : isPremium ? 'Criar sala' : 'É necessário Premium real para criar sala';
+  $('rooms-create').disabled = !planVerified || !isPremium;
+  $('rooms-create').title = isPremium ? 'Criar sala' : 'É necessário Premium para criar sala';
   renderOwnMusic();
   if (currentView === 'salas') renderRooms();
 }
@@ -276,19 +275,12 @@ function appendRoom(room) {
   card.append(info);
   const actions = make('div', 'room-actions');
   const subject = isSubjectRoom(room);
-  const simulated = previewPlan !== 'real';
   const shownPremium = visualPremium();
-  const canEnter = !simulated && planVerified && (isPremium || subject);
-  const label = shownPremium ? (simulated ? '👑 Ilimitado · prévia' : '👑 Ilimitado')
+  const canEnter = planVerified && (isPremium || subject);
+  const label = shownPremium ? '👑 Ilimitado'
     : subject ? '♡ 30 min compartilhados' : '👑 Bloqueada no Free';
   actions.append(make('span', 'lock-label', label));
-  if (simulated) {
-    const button = make('button', 'outline-action', shownPremium ? 'Disponível no Premium' : subject ? 'Disponível no Free' : 'Bloqueada no Free');
-    button.type = 'button';
-    button.disabled = true;
-    button.title = 'Somente uma prévia de aparência. Para acessar uma sala, use Meu plano real.';
-    actions.append(button);
-  } else if (canEnter) {
+  if (canEnter) {
     const enter = make('button', 'primary-action', 'Entrar na sala');
     enter.type = 'button';
     enter.addEventListener('click', () => void openChat({
@@ -364,8 +356,8 @@ async function loadRooms() {
 async function createRoom(event) {
   event.preventDefault();
   const feedback = $('create-room-feedback');
-  if (previewPlan !== 'real' || !planVerified || !isPremium) {
-    feedback.textContent = 'Criar salas exige uma conta Premium real. A prévia visual não altera seu plano.';
+  if (!planVerified || !isPremium) {
+    feedback.textContent = 'Criar salas exige o modo Premium ativo.';
     return;
   }
   const type = $('create-room-type').value;
@@ -410,11 +402,12 @@ async function restriction() {
   }
 }
 function chatAccessText(state) {
-  if (state?.premium === true) return '👑 Premium real · ilimitado';
+  const modeLabel = testAllowed && previewPlan !== 'real' ? 'TESTE' : 'real';
+  if (state?.premium === true) return `👑 Premium ${modeLabel} · ilimitado`;
   const seconds = Number(state?.segundos_restantes);
   return Number.isFinite(seconds)
-    ? `♡ Free real · ${Math.ceil(Math.max(0, seconds) / 60)} min compartilhados restantes hoje`
-    : '♡ Free real · 30 minutos compartilhados por dia';
+    ? `♡ Free ${modeLabel} · ${Math.ceil(Math.max(0, seconds) / 60)} min compartilhados restantes hoje`
+    : `♡ Free ${modeLabel} · 30 minutos compartilhados por dia`;
 }
 function roomTimeRpc(room) {
   return room.id === 'Global' ? 'tempo_chat_global'
@@ -440,9 +433,7 @@ async function syncNameColors(force = false) {
 function renderNameColorOptions() {
   const target = $('name-color-options');
   target.replaceChildren();
-  const selected = previewPlan !== 'real' && visualPremium()
-    ? (previewNameColor || validColor(userProfile?.cor_nome))
-    : validColor(userProfile?.cor_nome);
+  const selected = validColor(userProfile?.cor_nome);
   $('name-color-demo').textContent = userProfile?.nome?.trim() || 'Seu nome no Afinzer';
   $('name-color-demo').style.color = selected || '#f8e8ff';
   for (const color of NAME_COLORS) {
@@ -460,22 +451,15 @@ function renderNameColorOptions() {
 }
 function openNameColorPicker() {
   if (!planVerified || !visualPremium()) {
-    friendly('🎨 Escolher a cor do nome é um recurso Premium. O modo de prévia não altera seu acesso.', false, 'chat-feedback');
+    friendly('🎨 Escolher a cor do nome é um recurso Premium.', false, 'chat-feedback');
     return;
   }
-  $('name-color-feedback').textContent = previewPlan === 'real'
-    ? '' : 'Prévia visual: experimente as cores sem alterar sua conta real.';
+  $('name-color-feedback').textContent = '';
   renderNameColorOptions();
   $('name-color-dialog').showModal();
 }
 async function saveNameColor(hex) {
   if (!planVerified || !NAME_COLORS.some(color => color.hex === hex) || changingNameColor) return;
-  if (previewPlan !== 'real') {
-    previewNameColor = hex;
-    renderNameColorOptions();
-    $('name-color-feedback').textContent = 'Apenas prévia: a cor não foi salva na sua conta.';
-    return;
-  }
   if (!isPremium) {
     return;
   }
@@ -502,11 +486,6 @@ async function saveNameColor(hex) {
   }
 }
 async function openChat(room) {
-  if (previewPlan !== 'real') {
-    friendly('Esta é uma comparação visual. Selecione “Meu plano real” para usar salas e conversas.', true,
-      room.origin === 'salas' ? 'rooms-feedback' : 'app-feedback');
-    return;
-  }
   await leavingChat;
   if (activeChat) await leaveChat();
   if (!planVerified || (room.id !== 'Global' && !isPremium && !isSubjectRoom(room))) {
@@ -655,36 +634,44 @@ async function sendMessage(event) {
   }
 }
 
+async function changeTestPlan(mode) {
+  if (!testAllowed || !planVerified || switchingTestPlan || !['real','free','premium'].includes(mode)) return;
+  if (mode === previewPlan) return;
+  switchingTestPlan = true;
+  $('preview-plan').disabled = true;
+  if (['chat','cegas'].includes(currentView)) showView(activeChat?.origin || 'conversas');
+  await leavingChat;
+  friendly(`Aplicando ${mode === 'real' ? 'o plano original' : `o modo ${mode === 'free' ? 'Free' : 'Premium'} de teste`}…`, false);
+  try {
+    const result = await rpc('definir_plano_teste', { p_modo: mode });
+    const expectedPremium = mode === 'real' ? originalPremium : mode === 'premium';
+    if (result?.autorizado !== true || result?.modo !== mode || result?.premium_efetivo !== expectedPremium) {
+      throw new Error('Estado não confirmado');
+    }
+    location.reload();
+  } catch {
+    friendly('Não foi possível confirmar a troca de plano de teste. Tente novamente.', true);
+    $('preview-plan').value = previewPlan;
+  } finally {
+    switchingTestPlan = false;
+    $('preview-plan').disabled = false;
+  }
+}
+
 export async function initWebApp(context) {
   api = context;
   $('app-home').addEventListener('click', () => showView('inicio'));
-  $('preview-plan').addEventListener('change', event => {
-    previewPlan = ['free', 'premium'].includes(event.target.value) ? event.target.value : 'real';
-    if (previewPlan === 'real') previewNameColor = null;
-    if (previewPlan !== 'real' && ['chat', 'cegas'].includes(currentView)) {
-      showView(activeChat?.origin || 'conversas');
-    }
-    updatePlanPresentation();
-    discoveries?.refreshPreview();
-  });
-  $('preview-return-real').addEventListener('click', () => {
-    previewPlan = 'real';
-    $('preview-plan').value = 'real';
-    previewNameColor = null;
-    updatePlanPresentation();
-    discoveries?.refreshPreview();
-  });
+  $('preview-plan').addEventListener('change', event => void changeTestPlan(event.target.value));
+  $('preview-return-real').addEventListener('click', () => void changeTestPlan('real'));
   document.querySelectorAll('[data-view]').forEach(button => {
     button.addEventListener('click', () => showView(button.dataset.view));
   });
   $('open-global').addEventListener('click', () => void openChat({ id: 'Global', name: 'Chat Global', origin: 'conversas' }));
   $('rooms-global').addEventListener('click', () => void openChat({ id: 'Global', name: 'Chat Global', origin: 'salas' }));
   const openBlind = () => {
-    if (previewPlan !== 'real' || !planVerified || !isPremium) {
-      friendly(previewPlan !== 'real' ? '🎭 A comparação é somente visual. Selecione “Meu plano real” para conversar.'
-        : '🎭 Conversa às Cegas é exclusiva do Premium real.', true);
-      if (currentView === 'salas') friendly(previewPlan !== 'real'
-        ? 'Volte ao plano real para usar a Conversa às Cegas.' : '🎭 Conversa às Cegas exige Premium real.', true, 'rooms-feedback');
+    if (!planVerified || !isPremium) {
+      friendly('🎭 Conversa às Cegas é exclusiva do Premium.', true);
+      if (currentView === 'salas') friendly('🎭 Conversa às Cegas exige Premium.', true, 'rooms-feedback');
       return;
     }
     showView('cegas');
@@ -709,10 +696,8 @@ export async function initWebApp(context) {
   $('rooms-previous').addEventListener('click', () => { if (roomsPage > 1) { roomsPage--; void loadRooms(); } });
   $('rooms-next').addEventListener('click', () => { if (roomsHasNext) { roomsPage++; void loadRooms(); } });
   $('rooms-create').addEventListener('click', () => {
-    if (previewPlan !== 'real' || !planVerified || !isPremium) {
-      friendly(previewPlan !== 'real'
-        ? 'A comparação visual não cria salas. Volte ao plano real.'
-        : 'Criar salas exige uma conta Premium ativa.', false, 'rooms-feedback');
+    if (!planVerified || !isPremium) {
+      friendly('Criar salas exige uma conta Premium ativa.', false, 'rooms-feedback');
       return;
     }
     $('create-room-feedback').textContent = '';
@@ -738,10 +723,9 @@ export async function initWebApp(context) {
   });
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
-  discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium,
-    getPreviewPlan: () => previewPlan });
+  discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium });
   blindFeature = initBlindConversations({ $, rpc, api,
-    getAccess: () => previewPlan === 'real' && planVerified && isPremium,
+    getAccess: () => planVerified && isPremium,
     restriction, leaveView: () => showView('salas') });
   friendly('');
   const start = location.hash.slice(1);
