@@ -15,3 +15,15 @@ if (menu && nav) {
 }
 const year = document.querySelector('#ano');
 if (year) year.textContent = String(new Date().getFullYear());
+
+// O site publico reconhece a sessao mantida na mesma aba e no mesmo dominio.
+// O perfil confirma a autenticacao com o Supabase antes de exibir dados privados.
+try {
+  const saved = JSON.parse(sessionStorage.getItem('vibeorbit_portal_session_v1') || 'null');
+  if (saved?.access_token && saved?.refresh_token) {
+    document.querySelectorAll('a[href="entrar.html"]').forEach(link => {
+      link.href = 'conta.html';
+      link.textContent = 'Meu perfil';
+    });
+  }
+} catch { /* Nao ha sessao valida armazenada nesta aba. */ }
