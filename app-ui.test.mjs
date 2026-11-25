@@ -41,11 +41,16 @@ globalThis.document = {
 };
 globalThis.window = { scrollTo() {}, alert() {}, addEventListener() {} };
 globalThis.history = { replaceState() {} };
-globalThis.location = { hash: '' };
+let reloads = 0;
+globalThis.location = { hash: '', reload: () => { reloads++; } };
 
 const uid = 'usuario-teste';
 let color = '#FF80AB';
 let premiumActive = true;
+let originalPremium = true;
+let testMode = 'real';
+let testAuthorized = true;
+const planSwitches = [];
 const rooms = [
   { id: 'public:assunto_1', nome: 'Leitura', assunto: 'Livros', cidade: '', criador_id: uid },
   { id: 'public:cidade_1', nome: 'Pessoal de Campinas', assunto: 'Cidade', cidade: 'Campinas - SP', criador_id: 'outro' }
@@ -67,6 +72,17 @@ const api = {
       fotos_perfil: ['https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/teste.jpg', null, null, null, null, null]
     }];
     if (path.includes('/rpc/meu_premium_ativo')) return premiumActive;
+    if (path.includes('/rpc/meu_plano_teste')) return {
+      autorizado: testAuthorized, modo: testMode, premium_real: originalPremium,
+      premium_efetivo: premiumActive
+    };
+    if (path.includes('/rpc/definir_plano_teste')) {
+      if (!testAuthorized) throw new Error('Não autorizado');
+      testMode = JSON.parse(opts.body).p_modo;
+      planSwitches.push(testMode);
+      premiumActive = testMode === 'real' ? originalPremium : testMode === 'premium';
+      return { autorizado: true, modo: testMode, premium_real: originalPremium, premium_efetivo: premiumActive };
+    }
     if (path.includes('/rpc/cegas_deck_status')) return { situacao: 'novo' };
     if (path.includes('/rpc/cegas_deck_publicar')) { blindPublished = JSON.parse(opts.body).p_respostas; return { situacao: 'publicado' }; }
     if (path.includes('/rpc/cegas_deck_proximo')) return { situacao: 'perfil', perfil_id: 'outra-pessoa', respostas: [
@@ -116,25 +132,18 @@ const flush = () => new Promise(resolve => setTimeout(resolve, 10));
 
 await initWebApp(api);
 assert.equal($('plan-pill').textContent, '👑 Premium', 'A assinatura real é apresentada inicialmente');
-assert.equal($('real-plan-pill').textContent, '👑 Premium real', 'A assinatura comprovada sempre é exibida');
+assert.equal($('real-plan-pill').textContent, '👑 Premium original', 'A assinatura original é preservada');
+assert.equal($('test-plan-control').hidden, false, 'Somente uma conta autorizada pode alternar planos de teste');
 assert.match($('profile-music').textContent, /Música para teste/, 'Premium real vê música registrada');
-$('preview-plan').fire('change', { target: { value: 'free' } });
-assert.equal($('plan-pill').textContent, '♡ Free · somente visual', 'A comparação Free não troca o plano real');
-assert.match($('home-plan-info').textContent, /30 minutos grátis/, 'Prévia Free mostra regras Free');
-assert.equal($('real-plan-pill').textContent, '👑 Premium real', 'Prévia Free mantém o plano real visível');
-assert.equal($('preview-plan-note').hidden, false, 'O aviso de prévia deve ficar visível');
-$('preview-plan').fire('change', { target: { value: 'premium' } });
-assert.equal($('plan-pill').textContent, '👑 Premium · somente visual');
 
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
 assert.equal($('rooms-count').textContent, '2 sala(s) nesta página');
-assert.equal($('rooms-create').disabled, true, 'Simulação não permite criar sala, mesmo em conta Premium');
-assert.equal($('rooms-blind').disabled, true, 'Simulação não permite entrar na conversa real');
+assert.equal($('rooms-create').disabled, false, 'Premium tem permissão real para criar sala');
+assert.equal($('rooms-blind').disabled, false, 'Premium pode entrar na conversa às cegas');
 for (const card of $('rooms-list').children) {
-  assert.ok(find(card, child => child.textContent === '👑 Ilimitado · prévia'), 'Todas as salas exibem a mesma regra Premium simulada');
-  assert.equal(find(card, child => child.tag === 'button' && child.textContent === 'Disponível no Premium')?.disabled, true,
-    'Entradas em salas são bloqueadas na simulação');
+  assert.ok(find(card, child => child.textContent === '👑 Ilimitado'), 'Todas as salas exibem regra Premium real');
+  assert.ok(find(card, child => child.tag === 'button' && child.textContent === 'Entrar na sala'), 'Premium entra nas salas');
 }
 filters.find(node => node.dataset.roomFilter === 'cidade').fire('click');
 await flush();
@@ -144,7 +153,6 @@ $('rooms-search').fire('input', { target: { value: 'campinas' } });
 assert.equal($('rooms-count').textContent, '1 sala(s) nesta página', 'Busca por cidade funciona');
 $('rooms-search').fire('input', { target: { value: '' } });
 
-$('preview-plan').fire('change', { target: { value: 'real' } });
 assert.equal($('rooms-create').disabled, false, 'Premium real pode criar salas');
 $('rooms-create').fire('click');
 assert.equal($('create-room-dialog').open, true, 'Conta Premium pode abrir formulário de criação');
@@ -184,13 +192,19 @@ cyan.fire('click');
 await flush();
 assert.equal(color, '#00D9FF', 'Cor escolhida atualiza usuarios.cor_nome');
 assert.equal($('name-color-feedback').textContent.startsWith('Cor salva!'), true);
-assert.equal($('preview-plan-note').hidden, true, 'Ao voltar ao plano real, aviso de simulação desaparece');
-premiumActive = false;
+assert.equal($('preview-plan-note').hidden, true, 'Plano original não exibe aviso de teste');
+$('preview-plan').fire('change', { target: { value: 'free' } });
+await flush();
+assert.equal(planSwitches.at(-1), 'free', 'Selecionar Free chama RPC de troca efetiva');
+assert.equal(reloads, 1, 'Após trocar o plano, a área interna recarrega para aplicar permissões');
 await initWebApp(api);
-$('preview-plan').fire('change', { target: { value: 'premium' } });
-assert.equal($('plan-pill').textContent, '👑 Premium · somente visual', 'Free pode visualizar Premium sem ser convertido');
-assert.equal($('real-plan-pill').textContent, '♡ Free real', 'Conta real permanece Free');
-assert.match($('profile-music').textContent, /prévia|Premium real/i, 'A prévia não revela música Premium real para Free');
+assert.equal($('plan-pill').textContent, '♡ Free · TESTE', 'O modo Free é aplicado realmente');
+assert.equal($('real-plan-pill').textContent, '👑 Premium original', 'Premium original não é apagado');
+assert.equal($('preview-plan-note').hidden, false, 'Mostra aviso de teste ativo');
+assert.match($('home-plan-info').textContent, /30 minutos grátis/, 'Free mostra saldo de 30 minutos');
+assert.match($('profile-music').textContent, /recurso Premium/, 'Modo Free bloqueia música Premium');
+assert.equal($('rooms-create').disabled, true, 'Modo Free bloqueia criação de salas');
+assert.equal($('rooms-blind').disabled, true, 'Modo Free bloqueia Conversa às Cegas');
 nav.find(node => node.dataset.view === 'perfil').fire('click');
 assert.equal(panels.find(panel => panel.dataset.panel === 'perfil').hidden, false, 'A aba Perfil abre para Free');
 assert.equal($('profile-gallery').children.length, 6, 'Galeria do próprio usuário mantém os seis espaços, mesmo Free');
@@ -200,49 +214,42 @@ assert.ok(find($('profile-languages'), node => node.textContent === 'Inglês'), 
 assert.ok(find($('profile-facts'), node => node.textContent === '1,75 m'), 'Altura em metros com vírgula');
 assert.equal($('profile-presentation').textContent, 'Gosto de conversar e descobrir histórias.');
 assert.ok(find($('profile-facts'), node => node.textContent === '@pessoateste'), 'Instagram do dono aparece no perfil');
-assert.match($('profile-music').textContent, /Prévia Premium/, 'Prévia não inventa música automática');
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
-// A prévia não altera acesso; conferir o texto usando o plano real da conta Free.
-$('preview-plan').fire('change', { target: { value: 'real' } });
-assert.match($('profile-music').textContent, /recurso Premium/, 'Free real não visualiza música automática');
 const subjectRoom = $('rooms-list').children.find(node => find(node, child => child.textContent === 'Leitura'));
 const cityRoom = $('rooms-list').children.find(node => find(node, child => child.textContent === 'Pessoal de Campinas'));
-assert.ok(find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala'), 'Free entra em sala por assunto usando saldo compartilhado');
-assert.equal(Boolean(find(cityRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala')), false, 'Free não entra em sala por cidade');
-assert.match($('rooms-plan-note').textContent, /compartilhados/, 'Texto Free explica saldo compartilhado');
+assert.ok(find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala'), 'Free teste entra em sala por assunto com saldo compartilhado');
+assert.equal(Boolean(find(cityRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala')), false, 'Free teste bloqueia sala por cidade');
+assert.match($('rooms-plan-note').textContent, /compartilhados/, 'Free teste explica saldo compartilhado');
 find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala').fire('click');
 await flush();
-assert.equal(timeActions[0]?.p_acao, 'entrar', 'A entrada de sala Free chama a RPC de tempo compartilhado');
+assert.equal(timeActions[0]?.p_acao, 'entrar', 'A entrada Free chama RPC de tempo compartilhado');
 assert.equal(timeActions[0]?.p_sala_id, 'public:assunto_1');
-assert.match($('chat-time').textContent, /Free real/, 'Chat usa e informa a permissão real do Supabase');
+assert.match($('chat-time').textContent, /Free TESTE/, 'Chat usa permissão Free efetiva do teste');
 nav.find(node => node.dataset.view === 'perfil').fire('click');
 await flush();
 assert.equal(timeActions.at(-1)?.p_acao, 'sair', 'Sair da sala encerra o uso compartilhado');
 $('preview-plan').fire('change', { target: { value: 'premium' } });
-const before = writes.length;
-$('chat-name-color').fire('click');
-assert.equal($('name-color-dialog').open, true, 'Prévia Premium permite experimentar cores visualmente');
-const yellow = find($('name-color-options'), node => node.className === 'name-color-option'
-  && node.children.some(child => child.textContent === 'Amarelo'));
-yellow.fire('click');
-assert.equal($('name-color-demo').style.color, '#FFDC66', 'Cor pode ser simulada sem autorização de gravação');
-assert.equal(writes.length, before, 'Prévia Premium não pode salvar cor em conta Free');
-$('rooms-create').fire('click');
-assert.equal(writes.length, before, 'Prévia Premium não pode criar sala em conta Free');
-assert.equal($('rooms-create').disabled, true, 'A prévia desativa o formulário de criação');
-assert.match($('rooms-feedback').textContent, /comparação visual/, 'Free recebe aviso de simulação imediatamente na tela');
+await flush();
+assert.equal(planSwitches.at(-1), 'premium', 'Selecionar Premium também chama troca efetiva');
+assert.equal(reloads, 2);
+await initWebApp(api);
+assert.equal($('plan-pill').textContent, '👑 Premium · TESTE');
+assert.equal($('rooms-create').disabled, false, 'Premium teste libera criação');
+assert.equal($('rooms-blind').disabled, false, 'Premium teste libera Conversa às Cegas');
+assert.match($('profile-music').textContent, /Música para teste/, 'Premium teste libera música');
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
 for (const card of $('rooms-list').children) {
-  assert.ok(find(card, child => child.textContent === '👑 Ilimitado · prévia'), 'Prévia Premium Free não mistura regra Free nas salas');
+  assert.ok(find(card, child => child.textContent === '👑 Ilimitado'), 'Premium teste libera todas as salas');
 }
-$('preview-plan').fire('change', { target: { value: 'free' } });
-const previewCity = $('rooms-list').children.find(node => find(node, child => child.textContent === 'Pessoal de Campinas'));
-assert.ok(find(previewCity, child => child.textContent === '👑 Bloqueada no Free'), 'Prévia Free sinaliza restrição de sala por cidade');
 $('preview-return-real').fire('click');
-assert.equal($('preview-plan').value, 'real', 'Botão retorna ao modo de acesso verdadeiro');
-assert.equal($('rooms-create').disabled, true, 'Conta Free real continua impedida de criar salas');
+await flush();
+assert.equal(planSwitches.at(-1), 'real', 'Botão restaura plano original pela RPC');
+assert.equal(reloads, 3);
+await initWebApp(api);
+assert.equal($('preview-plan').value, 'real', 'Modo original selecionado');
+assert.equal($('rooms-create').disabled, false, 'Premium original continua intacto');
 for (let i = 0; i < 19; i++) rooms.push({ id: `public:assunto_extra${i}`, nome: `Grupo ${i}`, assunto: 'Testes', cidade: '', criador_id: uid });
 nav.find(node => node.dataset.view === 'salas').fire('click');
 await flush();
@@ -252,4 +259,11 @@ $('rooms-next').fire('click');
 await flush();
 assert.equal($('rooms-page-status').textContent, 'Página 2');
 assert.equal($('rooms-previous').disabled, false, 'É possível voltar de página');
-console.log('OK: prévia Free/Premium, perfil completo Free, salas paginadas, criação, cor do nome e Conversa às Cegas com RPCs.');
+testAuthorized = false;
+await initWebApp(api);
+assert.equal($('test-plan-control').hidden, true, 'Outras contas não veem o seletor de teste');
+const switchCount = planSwitches.length;
+$('preview-plan').fire('change', { target: { value: 'premium' } });
+await flush();
+assert.equal(planSwitches.length, switchCount, 'Conta não autorizada não pode solicitar mudança de plano');
+console.log('OK: alternância real Free/Premium/original, recursos por plano, salas paginadas, criação, cor do nome e Conversa às Cegas com RPCs.');
