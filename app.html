@@ -18,12 +18,13 @@
         <img src="assets/afinzer-logo-animado.gif" width="252" height="74" alt="Afinzer — balões em movimento">
       </button>
       <div class="header-actions">
+        <span id="real-plan-pill" class="real-plan-pill">Plano real: verificando…</span>
         <span id="plan-pill" class="plan-pill">Verificando plano…</span>
-        <label class="plan-preview-control" for="preview-plan">Prévia visual
+        <label class="plan-preview-control" for="preview-plan">Comparar aparência
           <select id="preview-plan" aria-label="Comparar visualização Free e Premium">
             <option value="real">Meu plano real</option>
-            <option value="free">Ver como Free</option>
-            <option value="premium">Ver como Premium</option>
+            <option value="free">Simular Free (visual)</option>
+            <option value="premium">Simular Premium (visual)</option>
           </select>
         </label>
         <a class="header-profile" href="conta.html">Editar perfil</a>
@@ -43,8 +44,8 @@
       <main id="main-content" class="app-content">
         <p id="app-feedback" class="app-feedback" role="status" aria-live="polite">Verificando sua conta…</p>
         <div id="preview-plan-note" class="preview-plan-note" hidden>
-          <span>Modo de comparação visual: sua assinatura e seus acessos reais não foram alterados. Seus hobbies, fotos e dados completos ficam na aba Perfil.</span>
-          <button type="button" class="preview-profile-link" data-view="perfil">Ver meus dados →</button>
+          <span id="preview-plan-description">Modo de comparação: os acessos reais não mudam.</span>
+          <button type="button" id="preview-return-real" class="preview-profile-link">Voltar ao meu plano real</button>
         </div>
 
         <section class="view" data-panel="inicio" aria-labelledby="home-title">
