@@ -13,6 +13,7 @@ class FakeNode {
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(type, handler) { this.listeners[type] = handler; }
   fire(type, event = {}) { return this.listeners[type]?.({ preventDefault: () => {}, target: this, ...event }); }
+  requestSubmit() { return this.fire('submit'); }
   showModal() { this.open = true; }
   close() { this.open = false; }
   focus() {}
@@ -20,6 +21,9 @@ class FakeNode {
 }
 
 const roots = new Map();
+const bodyClasses = new Set();
+const bodyStyles = new Map();
+const savedPrefs = new Map();
 const panels = ['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas'].map(panel => {
   const node = new FakeNode(); node.dataset.panel = panel; return node;
 });
@@ -31,6 +35,10 @@ const filters = ['todas', 'cidade', 'assunto', 'minhas'].map(value => {
 });
 globalThis.document = {
   hidden: false,
+  body: {
+    classList: { toggle: (name, active) => active ? bodyClasses.add(name) : bodyClasses.delete(name) },
+    style: { setProperty: (name, value) => bodyStyles.set(name, value), removeProperty: name => bodyStyles.delete(name) }
+  },
   addEventListener() {},
   createElement: tag => new FakeNode(tag),
   createTextNode: text => { const el = new FakeNode('text'); el.textContent = text; return el; },
@@ -39,7 +47,10 @@ globalThis.document = {
     : selector === '.nav-item' || selector === '[data-view]' ? nav
     : selector === '[data-room-filter]' ? filters : []
 };
-globalThis.window = { scrollTo() {}, alert() {}, addEventListener() {} };
+globalThis.window = { scrollTo() {}, alert() {}, addEventListener() {}, localStorage: {
+  getItem: key => savedPrefs.get(key) ?? null,
+  setItem: (key, value) => savedPrefs.set(key, value)
+} };
 globalThis.history = { replaceState() {} };
 let reloads = 0;
 globalThis.location = { hash: '', reload: () => { reloads++; } };
@@ -56,6 +67,7 @@ const rooms = [
   { id: 'public:cidade_1', nome: 'Pessoal de Campinas', assunto: 'Cidade', cidade: 'Campinas - SP', criador_id: 'outro' }
 ];
 const writes = [];
+const sentMessages = [];
 const timeActions = [];
 let blindPublished = null;
 let blindChatSent = '';
@@ -100,6 +112,10 @@ const api = {
       return { permitido: true, premium: false, segundos_restantes: 1800 };
     }
     if (path.includes('/mensagens?select=')) return [];
+    if (path === '/rest/v1/mensagens' && opts.method === 'POST') {
+      sentMessages.push(JSON.parse(opts.body));
+      return [];
+    }
   if (path.includes('/salas?')) {
     const params = new URLSearchParams(path.split('?')[1]);
     const category = params.get('id');
@@ -188,6 +204,7 @@ nav.find(node => node.dataset.view === 'salas').fire('click');
 
 $('chat-name-color').fire('click');
 assert.equal($('name-color-dialog').open, true, 'Premium abre seletor de cores');
+assert.ok($('name-color-options').children.length >= 18, 'Premium oferece paleta ampliada de cores');
 const cyan = find($('name-color-options'), node => node.className === 'name-color-option'
   && node.children.some(child => child.textContent === 'Ciano'));
 assert.ok(cyan, 'Deve existir a mesma paleta de cores do Android');
@@ -195,6 +212,15 @@ cyan.fire('click');
 await flush();
 assert.equal(color, '#00D9FF', 'Cor escolhida atualiza usuarios.cor_nome');
 assert.equal($('name-color-feedback').textContent.startsWith('Cor salva!'), true);
+assert.equal($('wallpaper-profile-open').hidden, false, 'Premium pode personalizar o fundo do site pelo próprio perfil');
+$('wallpaper-profile-open').fire('click');
+assert.equal($('wallpaper-dialog').open, true, 'Premium abre seletor de fundo');
+const aurora = find($('wallpaper-options'), node => node.className === 'wallpaper-option'
+  && node.children.some(child => child.textContent === 'Aurora'));
+assert.ok(aurora, 'Há fundos de tela predefinidos para Premium');
+aurora.fire('click');
+assert.equal(bodyClasses.has('premium-wallpaper-active'), true, 'Fundo premium aparece no site');
+assert.equal(JSON.parse(savedPrefs.get(`afinzer-wallpaper-v1:${uid}`)).id, 'aurora', 'Fundo persiste por conta no navegador');
 assert.equal($('preview-plan-note').hidden, true, 'Plano original não exibe aviso de teste');
 $('preview-plan').fire('change', { target: { value: 'free' } });
 await flush();
@@ -208,6 +234,8 @@ assert.match($('home-plan-info').textContent, /30 minutos grátis/, 'Free mostra
 assert.match($('profile-music').textContent, /recurso Premium/, 'Modo Free bloqueia música Premium');
 assert.equal($('rooms-create').disabled, true, 'Modo Free bloqueia criação de salas');
 assert.equal($('rooms-blind').disabled, true, 'Modo Free bloqueia Conversa às Cegas');
+assert.equal($('wallpaper-profile-open').hidden, true, 'Modo Free não oferece personalização Premium');
+assert.equal(bodyClasses.has('premium-wallpaper-active'), false, 'Modo Free não aplica fundo Premium já salvo');
 nav.find(node => node.dataset.view === 'perfil').fire('click');
 assert.equal(panels.find(panel => panel.dataset.panel === 'perfil').hidden, false, 'A aba Perfil abre para Free');
 assert.equal($('profile-gallery').children.length, 6, 'Galeria do próprio usuário mantém os seis espaços, mesmo Free');
@@ -228,6 +256,18 @@ assert.equal(Boolean(find(cityRoom, node => node.tag === 'button' && node.textCo
 assert.match($('rooms-plan-note').textContent, /compartilhados/, 'Free teste explica saldo compartilhado');
 find(subjectRoom, node => node.tag === 'button' && node.textContent === 'Entrar na sala').fire('click');
 await flush();
+assert.equal($('chat-input').disabled, false, 'O campo de texto está liberado após entrar na sala');
+const beforeSend = sentMessages.length;
+$('chat-input').value = 'Primeira linha\nSegunda linha';
+$('chat-input').fire('keydown', { key: 'Enter', shiftKey: true });
+assert.equal(sentMessages.length, beforeSend, 'Shift+Enter não envia mensagem');
+$('chat-input').fire('keydown', { key: 'Enter', isComposing: true });
+assert.equal(sentMessages.length, beforeSend, 'Enter durante composição do teclado não envia');
+$('chat-input').fire('keydown', { key: 'Enter' });
+await flush();
+assert.equal(sentMessages.length, beforeSend + 1, 'Enter envia mensagem sem clicar no botão');
+assert.equal(sentMessages.at(-1).conteudo, 'Primeira linha\nSegunda linha', 'Mensagem com múltiplas linhas é preservada');
+assert.equal($('chat-input').value, '', 'Campo é limpo após confirmação de envio');
 assert.equal(timeActions[0]?.p_acao, 'entrar', 'A entrada Free chama RPC de tempo compartilhado');
 assert.equal(timeActions[0]?.p_sala_id, 'public:assunto_1');
 assert.match($('chat-time').textContent, /Free TESTE/, 'Chat usa permissão Free efetiva do teste');
@@ -241,6 +281,8 @@ assert.equal(reloads, 2);
 await initWebApp(api);
 assert.equal($('plan-pill').textContent, '👑 Premium · TESTE');
 assert.equal($('rooms-create').disabled, false, 'Premium teste libera criação');
+assert.equal($('wallpaper-profile-open').hidden, false, 'Premium teste libera fundo personalizado');
+assert.equal(bodyClasses.has('premium-wallpaper-active'), true, 'Fundo salvo retorna ao alternar para Premium');
 assert.equal($('rooms-blind').disabled, false, 'Premium teste libera Conversa às Cegas');
 assert.match($('profile-music').textContent, /Música para teste/, 'Premium teste libera música');
 nav.find(node => node.dataset.view === 'salas').fire('click');
