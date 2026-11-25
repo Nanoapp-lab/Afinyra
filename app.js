@@ -1,5 +1,6 @@
 // Area interna do Afinzer. Somente a chave publica fica no navegador;
 // autorizacao, plano e tempo de uso sao confirmados no servidor.
+import { initDiscoveries } from './deck-conexoes.js';
 const $ = id => document.getElementById(id);
 const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat']);
 let api;
@@ -13,6 +14,7 @@ let chatFetching = false;
 let chatSending = false;
 let leavingChat = Promise.resolve();
 let currentView = 'inicio';
+let discoveries = null;
 
 function make(tag, className, value) {
   const el = document.createElement(tag);
@@ -49,6 +51,8 @@ function showView(view) {
     node.setAttribute('aria-pressed', String(Boolean(selected)));
   });
   if (view === 'salas') void loadRooms();
+  if (view === 'deck') void discoveries?.openDeck();
+  if (view === 'conexoes') void discoveries?.openConnections();
   if (view !== 'chat') history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -310,6 +314,7 @@ export async function initWebApp(context) {
   });
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
+  discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium });
   friendly('');
   const start = location.hash.slice(1);
   showView(start !== 'chat' && sections.has(start) ? start : 'inicio');
