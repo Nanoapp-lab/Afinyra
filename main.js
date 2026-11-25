@@ -22,8 +22,8 @@ try {
   const saved = JSON.parse(sessionStorage.getItem('vibeorbit_portal_session_v1') || 'null');
   if (saved?.access_token && saved?.refresh_token) {
     document.querySelectorAll('a[href="entrar.html"]').forEach(link => {
-      link.href = 'conta.html';
-      link.textContent = 'Meu perfil';
+      link.href = 'app.html';
+      link.textContent = 'Abrir Afinzer';
     });
   }
 } catch { /* Nao ha sessao valida armazenada nesta aba. */ }
