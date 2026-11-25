@@ -3,10 +3,11 @@
 import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
 import { initDirectConversations } from './direct-conversations.mjs';
+import { initCommunity } from './comunidade.mjs';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 import { roomCountdown } from './room-countdown.mjs';
 const $ = id => document.getElementById(id);
-const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas', 'direta']);
+const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'comunidade', 'salas', 'perfil', 'chat', 'cegas', 'direta']);
 let api;
 let userProfile = null;
 let isPremium = false;
@@ -21,6 +22,7 @@ let currentView = 'inicio';
 let discoveries = null;
 let blindFeature = null;
 let directFeature = null;
+let communityFeature = null;
 let previewPlan = 'real';
 let testAllowed = false;
 let originalPremium = false;
@@ -316,6 +318,7 @@ function showView(view) {
   if (view === 'deck') void discoveries?.openDeck();
   if (view === 'conexoes') void discoveries?.openConnections();
   if (view === 'conversas') void directFeature?.openInbox();
+  if (view === 'comunidade') void communityFeature?.openCommunity();
   if (view === 'cegas') void blindFeature?.enter();
   if (view !== 'chat') history.replaceState(null, '', `#${view}`);
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -974,8 +977,11 @@ export async function initWebApp(context) {
   window.addEventListener('pagehide', () => { if (activeChat) void leaveChat(); });
   await Promise.all([loadProfile(), loadPlan()]);
   directFeature = initDirectConversations({ $, api, rpc, make, getAccess: () => planVerified && isPremium, restriction, showView });
+  communityFeature = initCommunity({ $, api, make, safePhoto, restriction,
+    premium: () => planVerified && isPremium, showView });
   discoveries = initDiscoveries({ api, rpc, make, safePhoto, friendly, premium: planVerified && isPremium,
-    onDirectChat: person => directFeature.open(person) });
+    onDirectChat: person => directFeature.open(person),
+    onPersonShown: (person, target) => communityFeature.renderMural(person, target) });
   blindFeature = initBlindConversations({ $, rpc, api,
     getAccess: () => planVerified && isPremium,
     restriction, leaveView: () => showView('salas') });
