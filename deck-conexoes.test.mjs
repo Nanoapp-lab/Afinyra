@@ -29,7 +29,7 @@ globalThis.document = {
 globalThis.window = { confirm: () => true, prompt: () => 'Comportamento inadequado' };
 const people = [
   { id: 'pessoa-a', nome: 'Ana', idade_publica: 29, cidade_atual: 'São Paulo', is_online: true, foto_url: 'demo://retrato/9', fotos_perfil: [], mensagem_dia: 'Gosto de conversar.', hobbies: ['Música'] },
-  { id: 'pessoa-b', nome: 'Bia', idade_publica: 31, cidade_atual: 'Recife', is_online: false, foto_url: 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', fotos_perfil: ['https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia2.jpg'], hobbies: ['Leitura'] }
+  { id: 'pessoa-b', nome: 'Bia', idade_publica: 31, cidade_atual: 'Recife', cidade_natal: 'Olinda', empresa: 'Empresa Beta', filhos: 'Não', fumante: 'Não', bebida: 'Socialmente', is_online: false, foto_url: 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', fotos_perfil: ['https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia1.jpg', 'https://bzjwgvnyfunlwxfzbbbc.supabase.co/storage/v1/object/public/fotos/bia2.jpg'], hobbies: ['Leitura'] }
 ];
 let sent = [];
 let passed = [];
@@ -124,6 +124,9 @@ await premium.openConnections();
 await premium.openDeck();
 find(roots.get('deck-card-area'), node => node.textContent === 'Ver perfil').fire('click');
 assert.ok(find(roots.get('discovery-details'), node => node.textContent === 'Leitura'), 'Premium vê interesses extras');
+for (const label of ['📍 Cidade natal:', '🏢 Empresa:', '👶 Filhos:', '🚬 Fumante:', '🍷 Bebida:']) {
+  assert.ok(find(roots.get('discovery-details'), node => node.textContent === label), `Premium mostra ${label}`);
+}
 const nextPhoto = find(roots.get('discovery-details'), node => node.textContent === 'Próxima ›');
 assert.ok(nextPhoto, 'Premium tem galeria quando existem fotos válidas');
 nextPhoto.fire('click');
