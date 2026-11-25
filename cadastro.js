@@ -55,7 +55,7 @@ form.addEventListener('submit', async event => {
         refresh_token: data.refresh_token,
         expires_at: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600)
       }));
-      location.replace('conta.html');
+      location.replace('app.html');
       return;
     }
     showStatus('Cadastro solicitado. Se você receber um e-mail de confirmação, abra o link antes de entrar. Depois, acesse a página de login para completar seu perfil.');
