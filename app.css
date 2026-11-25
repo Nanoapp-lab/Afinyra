@@ -107,6 +107,15 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 .profile-fact{min-width:0;border:1px solid #5e426d;border-radius:14px;background:#271b32;padding:17px 19px}
 .profile-fact-label{color:#c989e8;font-size:.79rem;font-weight:850;letter-spacing:.04em;margin-bottom:7px}
 .profile-fact-value{font-size:1rem;font-weight:650;line-height:1.55;overflow-wrap:anywhere;margin:0}
+.own-app-about{max-width:1100px;margin:24px 0;background:linear-gradient(155deg,#302039,#21172c);padding:27px}
+.own-app-about h2{font-size:1.7rem;color:#efd3fa;margin:0 0 17px}
+.own-app-about h3{font-size:1.04rem;font-weight:600;margin:23px 0 5px;color:#e6d5ec}
+.own-app-about .own-presentation-text{font-size:1.07rem;line-height:1.65;margin:0 0 15px}
+.profile-app-list{padding-left:32px;margin:5px 0 17px;line-height:1.65;color:#f2e6f7}
+.profile-facts-list{display:flex;flex-direction:column;gap:7px;margin-top:22px}
+.profile-app-field{display:flex;flex-wrap:wrap;align-items:baseline;gap:5px;font-size:1.03rem;line-height:1.55}
+.profile-app-label{color:#ead3f5;font-weight:650}
+.profile-app-value{color:#fff1fa;overflow-wrap:anywhere}
 .back-button{border:0;background:transparent;color:#d6a1f3;padding:0 0 20px;font-weight:750}
 .chat-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
 .chat-topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:19px}
@@ -232,10 +241,13 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 .discovery-section-title{color:#f2d8fa;font-size:1.23rem;font-weight:800;letter-spacing:-.02em;margin:0 0 15px}
 .discovery-about-text{font-size:1.05rem;line-height:1.7;color:#f1e5f6;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
 .discovery-extra{padding-top:5px}
-.discovery-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.discovery-field{border:1px solid #6b4b79;background:#2d1e39;padding:13px 15px;border-radius:14px;min-width:0}
-.discovery-field-label{display:block;color:#c889e5;text-transform:uppercase;letter-spacing:.065em;font-size:.7rem;font-weight:850;margin-bottom:8px}
-.discovery-field-value{color:#eee0f5;line-height:1.48;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-size:.96rem}
+.discovery-facts{display:flex;flex-direction:column;gap:9px;border:1px solid #715180;background:#291c36;padding:20px;border-radius:18px}
+.discovery-field{display:flex;align-items:baseline;flex-wrap:wrap;gap:5px;min-width:0}
+.discovery-field-label{color:#f0d3f9;font-size:1rem;font-weight:700}
+.discovery-field-value{color:#eee0f5;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-size:1rem}
+.discovery-detail-group{margin-bottom:8px}
+.discovery-detail-group-title{color:#f1def7;margin:0 0 6px;font-size:1rem;font-weight:650}
+.discovery-detail-list{padding-left:32px;margin:2px 0 12px;color:#f3e6f7;line-height:1.6}
 .discovery-premium-note{display:flex;gap:15px;align-items:flex-start;border:1px solid #83549a;background:linear-gradient(135deg,#513064,#372342);border-radius:18px;padding:18px;color:#f0e0f7}
 .discovery-premium-icon{flex:none;width:42px;height:42px;border-radius:13px;background:#7c3b9b;color:#f0cffa;display:grid;place-items:center;font-size:1.5rem}
 .discovery-premium-note strong{font-size:1.02rem}.discovery-premium-note p{color:#d7c1df;line-height:1.55;margin:7px 0 0;font-size:.91rem}
