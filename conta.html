@@ -24,21 +24,27 @@
         <div class="profile-fields">
           <div class="portal-field"><label for="profile-name">Nome *</label><input id="profile-name" name="nome" maxlength="80" minlength="2" autocomplete="name" required></div>
           <div class="portal-field"><label for="profile-birth">Data de nascimento *</label><input id="profile-birth" name="data_nascimento" inputmode="numeric" maxlength="10" placeholder="DD/MM/AAAA" autocomplete="bday" required></div>
-          <div class="portal-field"><label for="profile-city">Cidade atual</label><input id="profile-city" name="cidade_atual" maxlength="120" placeholder="Sorocaba - SP"></div>
-          <div class="portal-field"><label for="profile-origin">Cidade natal</label><input id="profile-origin" name="cidade_natal" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-gender">Gênero</label><input id="profile-gender" name="genero" maxlength="120" placeholder="Como você se identifica"></div>
-          <div class="portal-field"><label for="profile-seeking">Quero conhecer</label><input id="profile-seeking" name="buscando" maxlength="120" placeholder="Minhas preferências"></div>
-          <div class="portal-field"><label for="profile-intention">Objetivo da conexão</label><input id="profile-intention" name="objetivo_conexao" maxlength="120" placeholder="Amizade, relacionamento..."></div>
-          <div class="portal-field"><label for="profile-height">Altura</label><input id="profile-height" name="altura" maxlength="5" inputmode="decimal" placeholder="1,75"></div>
+          <div class="portal-field city-field"><label for="profile-city">Cidade atual</label><input id="profile-city" name="cidade_atual" maxlength="120" readonly>
+            <div class="city-controls"><select id="city-current-state" aria-label="Estado da cidade atual"><option value="">Selecione a UF</option></select><input id="city-current-search" type="search" placeholder="Buscar cidade" aria-label="Buscar cidade atual" disabled></div>
+            <select id="city-current-results" class="city-results" size="5" aria-label="Resultados de cidades" hidden></select><div class="city-helper"><span id="city-current-hint" class="portal-subtle">Escolha o estado e busque a cidade.</span><button id="city-current-clear" type="button" class="city-clear">Limpar</button></div>
+          </div>
+          <div class="portal-field city-field"><label for="profile-origin">Cidade natal</label><input id="profile-origin" name="cidade_natal" maxlength="120" readonly>
+            <div class="city-controls"><select id="city-origin-state" aria-label="Estado da cidade natal"><option value="">Selecione a UF</option></select><input id="city-origin-search" type="search" placeholder="Buscar cidade" aria-label="Buscar cidade natal" disabled></div>
+            <select id="city-origin-results" class="city-results" size="5" aria-label="Resultados de cidades" hidden></select><div class="city-helper"><span id="city-origin-hint" class="portal-subtle">Escolha o estado e busque a cidade.</span><button id="city-origin-clear" type="button" class="city-clear">Limpar</button></div>
+          </div>
+          <div class="portal-field"><label for="profile-gender">Gênero</label><select id="profile-gender" name="genero"></select></div>
+          <div class="portal-field"><label for="profile-seeking">Quero conhecer</label><select id="profile-seeking" name="buscando"></select></div>
+          <div class="portal-field"><label for="profile-intention">Objetivo da conexão</label><select id="profile-intention" name="objetivo_conexao"></select></div>
+          <div class="portal-field"><label for="profile-height">Altura</label><input id="profile-height" name="altura" maxlength="5" inputmode="decimal" placeholder="Ex.: 1,75"><span class="portal-subtle">Digite em metros com vírgula. Exemplo: 1,89.</span></div>
           <div class="portal-field"><label for="profile-profession">Profissão</label><input id="profile-profession" name="profissao" maxlength="120"></div>
           <div class="portal-field"><label for="profile-company">Empresa</label><input id="profile-company" name="empresa" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-education">Escolaridade</label><input id="profile-education" name="escolaridade" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-religion">Crenças / religião</label><input id="profile-religion" name="religiao" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-children">Filhos</label><input id="profile-children" name="filhos" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-smokes">Tabagismo</label><input id="profile-smokes" name="fumante" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-drinks">Bebidas</label><input id="profile-drinks" name="bebida" maxlength="120"></div>
-          <div class="portal-field"><label for="profile-languages">Idiomas</label><input id="profile-languages" name="idiomas" maxlength="700" placeholder="Português, inglês, espanhol"><span class="portal-subtle">Separe por vírgulas.</span></div>
-          <div class="portal-field full"><label for="profile-hobbies">Hobbies e interesses</label><textarea id="profile-hobbies" name="hobbies" rows="2" maxlength="1400" placeholder="Música, viagens, fotografia, leitura..."></textarea><span class="portal-subtle">Separe por vírgulas para ajudar o Radar de sintonia.</span></div>
+          <div class="portal-field"><label for="profile-education">Escolaridade</label><select id="profile-education" name="escolaridade"></select></div>
+          <div class="portal-field"><label for="profile-religion">Crenças / religião</label><select id="profile-religion" name="religiao"></select><input id="custom-religion" maxlength="120" placeholder="Digite sua crença ou religião" aria-label="Outra religião" hidden></div>
+          <div class="portal-field"><label for="profile-children">Filhos</label><select id="profile-children" name="filhos"></select></div>
+          <div class="portal-field"><label for="profile-smokes">Tabagismo</label><select id="profile-smokes" name="fumante"></select></div>
+          <div class="portal-field"><label for="profile-drinks">Bebidas alcoólicas</label><select id="profile-drinks" name="bebida"></select></div>
+          <div class="portal-field full"><label for="profile-languages">Idiomas</label><details class="choices-details"><summary>Escolher idiomas da lista</summary><div id="language-options" class="choice-grid"></div></details><input id="profile-languages" name="idiomas" maxlength="700" placeholder="Idiomas selecionados ou outros, separados por vírgulas"><span class="portal-subtle">Selecione vários e, se precisar, digite outros.</span></div>
+          <div class="portal-field full"><label for="profile-hobbies">Hobbies e interesses</label><details class="choices-details"><summary>Escolher hobbies da lista</summary><div id="hobby-options" class="choice-grid"></div></details><textarea id="profile-hobbies" name="hobbies" rows="2" maxlength="2400" placeholder="Hobbies selecionados ou outros, separados por vírgulas"></textarea><span class="portal-subtle">As mesmas opções do app ajudam o Radar de sintonia a encontrar afinidades.</span></div>
           <div class="portal-field full"><label for="profile-about">Apresentação / frase do dia</label><textarea id="profile-about" name="mensagem_dia" rows="4" maxlength="1000" placeholder="Conte um pouco sobre você..."></textarea></div>
         </div>
         <button id="profile-submit" type="submit" class="portal-button">Salvar meus dados</button>
@@ -46,7 +52,7 @@
       <p id="profile-status" class="portal-status" role="status" aria-live="polite"></p>
       <div class="profile-photos-section"><div><span class="section-kicker">MINHA GALERIA</span><h2>Minhas fotos</h2><p>A primeira foto será a principal. Você pode adicionar, remover ou escolher outra foto principal.</p></div>
         <div id="profile-gallery" class="profile-gallery" aria-label="Fotos do seu perfil"></div>
-        <label for="photo-file" class="portal-button photo-upload-label">+ Adicionar foto</label><input id="photo-file" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"><p id="photo-hint" class="portal-subtle" role="status"></p>
+        <label for="photo-file" class="portal-button photo-upload-label">+ Adicionar foto</label><input id="photo-file" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"><p id="photo-hint" class="portal-subtle" role="status" aria-live="polite"></p>
       </div>
     </section>
   </main>
