@@ -3,6 +3,7 @@
 import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
 import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
+import { roomCountdown } from './room-countdown.mjs';
 const $ = id => document.getElementById(id);
 const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas']);
 let api;
@@ -31,6 +32,12 @@ let roomsHasNext = false;
 let roomsRequest = 0;
 let roomSearchTimer = null;
 let roomExpiryRefreshTimer = null;
+let roomCountdownTicker = null;
+let roomCountdownElements = [];
+let lastExpiredRoomRefresh = 0;
+let chatCountdownTicker = null;
+let expiredChatClosing = false;
+let lastChatOrigin = 'conversas';
 let nameColors = new Map();
 let lastColorSync = 0;
 let changingNameColor = false;
@@ -285,6 +292,8 @@ function showView(view) {
   if (!sections.has(view)) view = 'inicio';
   clearInterval(roomExpiryRefreshTimer);
   roomExpiryRefreshTimer = null;
+  clearInterval(roomCountdownTicker);
+  roomCountdownTicker = null;
   if (currentView === 'cegas' && view !== 'cegas') void blindFeature?.exit();
   if (activeChat && view !== 'chat') void leaveChat();
   currentView = view;
@@ -298,6 +307,7 @@ function showView(view) {
   if (view === 'salas') {
     void loadRooms();
     roomExpiryRefreshTimer = setInterval(() => { if (!document.hidden) void loadRooms(); }, 60000);
+    roomCountdownTicker = setInterval(updateRoomCountdowns, 1000);
   }
   if (view === 'deck') void discoveries?.openDeck();
   if (view === 'conexoes') void discoveries?.openConnections();
@@ -401,6 +411,9 @@ function appendRoom(room) {
         timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
       }).format(expires);
       info.append(make('p', 'room-expires', `⏳ Encerra em ${formatted} (Brasília)`));
+      const timer = make('p', 'room-countdown');
+      info.append(timer);
+      roomCountdownElements.push({ element: timer, expiresAt: room.expira_em });
     }
   }
   card.append(info);
@@ -429,6 +442,22 @@ function appendRoom(room) {
   card.append(actions);
   $('rooms-list').append(card);
 }
+function updateRoomCountdowns() {
+  let expired = false;
+  for (const entry of roomCountdownElements) {
+    const remaining = roomCountdown(entry.expiresAt);
+    if (!remaining) continue;
+    entry.element.textContent = remaining.seconds === 0
+      ? '⏰ Prazo encerrado' : `⏳ Tempo restante: ${remaining.text}`;
+    entry.element.classList.toggle('ending-soon', remaining.phase === 'warning' || remaining.phase === 'final');
+    entry.element.classList.toggle('ending-now', remaining.phase === 'expired');
+    if (remaining.phase === 'expired') expired = true;
+  }
+  if (expired && currentView === 'salas' && Date.now() - lastExpiredRoomRefresh > 10000) {
+    lastExpiredRoomRefresh = Date.now();
+    void loadRooms();
+  }
+}
 function normalizeSearch(value) {
   return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
 }
@@ -446,6 +475,7 @@ function renderRooms() {
     return active && matchesCategory && matchesText;
   });
   $('rooms-list').replaceChildren();
+  roomCountdownElements = [];
   $('rooms-count').textContent = `${rows.length} sala(s) nesta página${roomsHasNext ? ' · há mais salas' : ''}`;
   $('rooms-page-status').textContent = `Página ${roomsPage}`;
   $('rooms-previous').disabled = roomsPage <= 1;
@@ -462,6 +492,7 @@ function renderRooms() {
     return;
   }
   rows.forEach(appendRoom);
+  updateRoomCountdowns();
 }
 async function loadRooms() {
   const thisRequest = ++roomsRequest;
@@ -632,6 +663,12 @@ async function openChat(room) {
   }
   $('chat-title').textContent = room.name;
   $('chat-time').textContent = 'Conferindo acesso…';
+  $('chat-room-countdown').hidden = true;
+  $('chat-room-countdown').textContent = '';
+  $('chat-expiration-warning').hidden = true;
+  $('chat-expiration-warning').textContent = '';
+  $('chat-back').textContent = '← Voltar';
+  lastChatOrigin = room.origin || 'conversas';
   $('chat-messages').replaceChildren(make('p', 'chat-empty', 'Preparando sua conversa…'));
   $('chat-input').value = '';
   setChatEnabled(false);
@@ -644,7 +681,9 @@ async function openChat(room) {
     const allowed = await rpc(roomTimeRpc(room), roomTimePayload(room, 'entrar'));
     if (activeChat !== chat) return;
     if (allowed?.permitido !== true) {
-      friendly(room.id === 'Global' || isSubjectRoom(room)
+      friendly(allowed?.motivo === 'expired'
+        ? '⏰ O prazo desta sala terminou. Volte às salas para escolher outra.'
+        : room.id === 'Global' || isSubjectRoom(room)
         ? 'Seus 30 minutos compartilhados entre o Global e as salas por assunto terminaram. Volte amanhã ou escolha Premium.'
         : 'Essa sala exige uma conta Premium ativa.', true, 'chat-feedback');
       await leaveChat();
@@ -654,7 +693,12 @@ async function openChat(room) {
     $('chat-time').textContent = chatAccessText(allowed);
     friendly('', false, 'chat-feedback');
     setChatEnabled(true);
+    if (room.expira_em) {
+      updateChatRoomCountdown();
+      chatCountdownTicker = setInterval(updateChatRoomCountdown, 1000);
+    }
     await loadMessages();
+    if (activeChat !== chat || !chat.ready) return;
     chatPoll = setInterval(() => { void loadMessages(); }, 6500);
     chatHeartbeat = setInterval(() => { void heartbeat(); }, 15000);
     $('chat-input').focus();
@@ -667,13 +711,51 @@ async function openChat(room) {
   }
 }
 
+function updateChatRoomCountdown() {
+  const chat = activeChat;
+  const target = $('chat-room-countdown');
+  const warning = $('chat-expiration-warning');
+  const remaining = roomCountdown(chat?.expira_em);
+  if (!remaining) {
+    target.hidden = true;
+    warning.hidden = true;
+    return;
+  }
+  target.hidden = false;
+  target.textContent = `⏳ Sala encerra em ${remaining.text}`;
+  target.classList.toggle('ending-soon', remaining.phase === 'warning' || remaining.phase === 'final');
+  target.classList.toggle('ending-now', remaining.phase === 'expired');
+  warning.hidden = remaining.phase === 'normal';
+  warning.textContent = remaining.phase === 'expired'
+    ? '⏰ O tempo da sala terminou. A conversa foi encerrada.'
+    : remaining.phase === 'final'
+      ? '🚨 Falta menos de 1 minuto! Conclua sua mensagem antes que a sala encerre.'
+      : remaining.phase === 'warning'
+        ? '⚠️ Atenção: faltam 15 minutos ou menos para o encerramento da sala.' : '';
+  if (remaining.phase === 'expired' && chat?.ready) void endExpiredChat();
+}
+async function endExpiredChat() {
+  const chat = activeChat;
+  if (!chat?.ready || expiredChatClosing) return;
+  expiredChatClosing = true;
+  try {
+    await leaveChat();
+    if (currentView !== 'chat') return;
+    $('chat-time').textContent = '⏰ Sala encerrada';
+    $('chat-room-countdown').textContent = '⏳ Sala encerrou: 00:00:00';
+    $('chat-expiration-warning').hidden = false;
+    $('chat-expiration-warning').textContent = '⏰ O tempo da sala terminou. Você pode voltar e escolher outra sala.';
+    $('chat-back').textContent = '← Voltar às salas';
+    friendly('Esta sala foi encerrada no horário previsto. O envio de mensagens foi desativado.', true, 'chat-feedback');
+  } finally {
+    expiredChatClosing = false;
+  }
+}
 async function heartbeat() {
   const chat = activeChat;
   if (!chat?.ready || document.hidden) return;
   if (chat.expira_em && new Date(chat.expira_em).getTime() <= Date.now()) {
-    await leaveChat();
-    showView('salas');
-    friendly('O prazo desta sala terminou. Escolha outra conversa.', false, 'rooms-feedback');
+    await endExpiredChat();
     return;
   }
   try {
@@ -681,6 +763,10 @@ async function heartbeat() {
     const state = await rpc(roomTimeRpc(chat), roomTimePayload(chat, 'ping'));
     if (activeChat !== chat) return;
     if (state?.permitido !== true) {
+      if (state?.motivo === 'expired') {
+        await endExpiredChat();
+        return;
+      }
       friendly('Seu tempo de hoje terminou. A conversa foi pausada.', true, 'chat-feedback');
       await leaveChat();
       return;
@@ -701,8 +787,10 @@ async function leaveChat() {
   activeChat = null;
   clearInterval(chatPoll);
   clearInterval(chatHeartbeat);
+  clearInterval(chatCountdownTicker);
   chatPoll = null;
   chatHeartbeat = null;
+  chatCountdownTicker = null;
   setChatEnabled(false);
   if (chat.ready) {
     leavingChat = rpc(roomTimeRpc(chat), roomTimePayload(chat, 'sair')).catch(() => {});
@@ -751,6 +839,10 @@ async function sendMessage(event) {
   const chat = activeChat;
   const input = $('chat-input');
   const draft = input.value.trim();
+  if (chat?.expira_em && roomCountdown(chat.expira_em)?.seconds === 0) {
+    await endExpiredChat();
+    return;
+  }
   if (!chat?.ready || !draft || chatSending) return;
   chatSending = true;
   $('chat-send').disabled = true;
@@ -858,7 +950,7 @@ export async function initWebApp(context) {
     $('create-room-detail').placeholder = byCity ? 'Ex.: Campinas - SP' : 'Ex.: Música, viagens, filmes…';
   });
   $('create-room-form').addEventListener('submit', createRoom);
-  $('chat-back').addEventListener('click', () => showView(activeChat?.origin || 'conversas'));
+  $('chat-back').addEventListener('click', () => showView(activeChat?.origin || lastChatOrigin));
   $('chat-name-color').addEventListener('click', openNameColorPicker);
   $('name-color-close').addEventListener('click', () => $('name-color-dialog').close());
   $('wallpaper-chat-open').addEventListener('click', openWallpaperPicker);
