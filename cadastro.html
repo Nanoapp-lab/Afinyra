@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100a1b"><meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://bzjwgvnyfunlwxfzbbbc.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>Criar conta | Afinzer</title>
+  <link rel="icon" href="assets/afinzer-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="portal.css"><link rel="stylesheet" href="perfil.css">
+  <script type="module" src="cadastro.js"></script>
+</head>
+<body data-portal-page="signup">
+  <header class="header shell"><a class="brand" href="index.html"><img class="brand-logo" src="assets/afinzer-wordmark.svg" alt="Afinzer" width="188" height="55"></a><a href="entrar.html">Já tenho conta</a></header>
+  <main class="shell portal-layout">
+    <div class="portal-heading"><span class="section-kicker">AFINZER WEB</span><h1>Comece sua história.</h1><p>Crie sua conta para conhecer pessoas com interesses em comum. Exclusivo para maiores de 18 anos.</p></div>
+    <section class="portal-card" aria-labelledby="signup-title">
+      <h2 id="signup-title">Criar minha conta</h2>
+      <form id="signup-form" autocomplete="on">
+        <div class="portal-field"><label for="signup-name">Nome ou nome de exibição</label><input id="signup-name" name="nome" type="text" autocomplete="name" minlength="2" maxlength="80" required></div>
+        <div class="portal-field"><label for="signup-email">E-mail</label><input id="signup-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required></div>
+        <div class="portal-field"><label for="signup-birth">Data de nascimento</label><input id="signup-birth" name="data_nascimento" inputmode="numeric" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="bday" required><span class="portal-subtle">A idade mínima é 18 anos. A data será validada no servidor.</span></div>
+        <div class="portal-field"><label for="signup-password">Crie uma senha</label><input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><span class="portal-subtle">Use ao menos 8 caracteres.</span></div>
+        <div class="portal-field"><label for="signup-password-repeat">Confirme a senha</label><input id="signup-password-repeat" name="password_repeat" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+        <label class="consent-row"><input type="checkbox" id="signup-consent" required><span>Tenho pelo menos 18 anos e concordo com as <a href="diretrizes.html" target="_blank" rel="noopener noreferrer">Diretrizes de Comunidade</a> do Afinzer.</span></label>
+        <button id="signup-submit" class="portal-button" type="submit">Criar conta gratuitamente</button>
+      </form>
+      <p id="portal-message" class="portal-status" role="status" aria-live="polite"></p>
+      <p class="portal-subtle">Já usa o aplicativo Android? <a href="entrar.html">Entre com a mesma conta.</a> Você não precisa se cadastrar de novo.</p>
+    </section>
+  </main>
+  <footer class="footer"><div class="shell footer-bottom"><span>Afinzer • Exclusivo para maiores de 18 anos</span><span class="design-credit">Designed by <strong>Zetriv Technologies LTDA</strong></span></div></footer>
+</body>
+</html>
