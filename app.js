@@ -42,8 +42,122 @@ const NAME_COLORS = [
   { name: 'Amarelo', hex: '#FFDC66' },
   { name: 'Laranja', hex: '#FFB142' },
   { name: 'Azul', hex: '#6495ED' },
-  { name: 'Branco', hex: '#FFFFFF' }
+  { name: 'Branco', hex: '#FFFFFF' },
+  { name: 'Lavanda', hex: '#D8B4FE' },
+  { name: 'Coral', hex: '#FF927B' },
+  { name: 'Turquesa', hex: '#5CE1E6' },
+  { name: 'Lima', hex: '#B7F071' },
+  { name: 'Magenta', hex: '#FF66D8' },
+  { name: 'Dourado', hex: '#F5CE6E' },
+  { name: 'Azul-céu', hex: '#8EC5FF' },
+  { name: 'Menta', hex: '#99F6CF' },
+  { name: 'Pêssego', hex: '#FFC4A6' },
+  { name: 'Lilás', hex: '#E1A9FF' },
+  { name: 'Esmeralda', hex: '#72E9A8' },
+  { name: 'Gelo', hex: '#D5FAFF' }
 ];
+const WALLPAPER_PRESETS = [
+  { id: 'default', name: 'Padrão', css: '' },
+  { id: 'aurora', name: 'Aurora', css: 'radial-gradient(circle at 12% 22%,#24534f 0%,transparent 50%),linear-gradient(125deg,#071723,#453060)' },
+  { id: 'cosmos', name: 'Cosmos', css: 'radial-gradient(circle at 80% 10%,#70409b 0%,transparent 40%),linear-gradient(145deg,#110b29,#2f184f,#081928)' },
+  { id: 'oceano', name: 'Oceano', css: 'radial-gradient(circle at 85% 18%,#1c6683 0%,transparent 45%),linear-gradient(145deg,#071a34,#0f3e54,#12132e)' },
+  { id: 'vinho', name: 'Vinho', css: 'radial-gradient(circle at 20% 10%,#7b315b 0%,transparent 50%),linear-gradient(135deg,#210d27,#451a37)' },
+  { id: 'floresta', name: 'Floresta', css: 'radial-gradient(circle at 95% 10%,#315c45 0%,transparent 45%),linear-gradient(135deg,#091e21,#1b3c2c)' },
+  { id: 'crepusculo', name: 'Crepúsculo', css: 'linear-gradient(140deg,#211042 0%,#68395d 48%,#8e5339 100%)' }
+];
+const wallpaperKey = () => `afinzer-wallpaper-v1:${api?.user?.id}`;
+function readWallpaper() {
+  try {
+    const raw = window.localStorage?.getItem(wallpaperKey());
+    const stored = raw ? JSON.parse(raw) : null;
+    if (stored?.type === 'preset' && WALLPAPER_PRESETS.some(item => item.id === stored.id)) return stored;
+    if (stored?.type === 'photo' && typeof stored.data === 'string'
+      && stored.data.length < 1700000 && /^data:image\/jpeg;base64,[a-zA-Z0-9+/=]+$/.test(stored.data)) return stored;
+  } catch { /* O armazenamento pode estar desativado no navegador. */ }
+  return { type: 'preset', id: 'default' };
+}
+function applyWallpaper() {
+  const allowed = planVerified && isPremium;
+  $('wallpaper-chat-open').hidden = !allowed;
+  $('wallpaper-profile-open').hidden = !allowed;
+  const choice = allowed ? readWallpaper() : { type: 'preset', id: 'default' };
+  const css = choice.type === 'photo' ? `url("${choice.data}")`
+    : WALLPAPER_PRESETS.find(item => item.id === choice.id)?.css || '';
+  document.body.classList.toggle('premium-wallpaper-active', Boolean(css));
+  if (css) document.body.style.setProperty('--afinzer-wallpaper', css);
+  else document.body.style.removeProperty('--afinzer-wallpaper');
+}
+function renderWallpaperOptions() {
+  const target = $('wallpaper-options');
+  target.replaceChildren();
+  const selected = readWallpaper();
+  for (const preset of WALLPAPER_PRESETS) {
+    const button = make('button', 'wallpaper-option');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(selected.type === 'preset' && selected.id === preset.id));
+    const swatch = make('span', 'wallpaper-swatch');
+    swatch.style.background = preset.css || 'linear-gradient(135deg,#251631,#100a19)';
+    button.append(swatch, make('span', null, preset.name));
+    button.addEventListener('click', () => saveWallpaper({ type: 'preset', id: preset.id }));
+    target.append(button);
+  }
+}
+function saveWallpaper(choice) {
+  if (!planVerified || !isPremium) return;
+  try {
+    window.localStorage.setItem(wallpaperKey(), JSON.stringify(choice));
+    applyWallpaper();
+    renderWallpaperOptions();
+    $('wallpaper-feedback').textContent = choice.type === 'photo'
+      ? 'Sua foto foi aplicada neste navegador.' : 'Fundo atualizado! A escolha fica salva neste navegador.';
+  } catch {
+    $('wallpaper-feedback').textContent = 'Não foi possível salvar o fundo neste navegador. Verifique o espaço disponível ou as configurações de privacidade.';
+  }
+}
+function openWallpaperPicker() {
+  if (!planVerified || !isPremium) return;
+  $('wallpaper-feedback').textContent = '';
+  renderWallpaperOptions();
+  $('wallpaper-dialog').showModal();
+}
+async function uploadWallpaper(event) {
+  if (!planVerified || !isPremium) return;
+  const input = event.target;
+  const file = input.files?.[0];
+  if (!file) return;
+  input.value = '';
+  if (!['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 12 * 1024 * 1024) {
+    $('wallpaper-feedback').textContent = 'Use uma imagem JPG, PNG ou WebP de até 12 MB.';
+    return;
+  }
+  $('wallpaper-feedback').textContent = 'Preparando sua foto…';
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const data = await new Promise((resolve, reject) => {
+      const photo = new Image();
+      photo.onload = () => {
+        try {
+          if (!photo.naturalWidth || !photo.naturalHeight) throw new Error('Imagem vazia');
+          const scale = Math.min(1, 1400 / photo.naturalWidth, 1000 / photo.naturalHeight);
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
+          canvas.getContext('2d').drawImage(photo, 0, 0, canvas.width, canvas.height);
+          const encoded = canvas.toDataURL('image/jpeg', 0.74);
+          if (encoded.length > 1600000) throw new Error('Imagem muito grande');
+          resolve(encoded);
+        } catch (error) { reject(error); }
+      };
+      photo.onerror = () => reject(new Error('Imagem inválida'));
+      photo.src = objectUrl;
+    });
+    saveWallpaper({ type: 'photo', data });
+  } catch {
+    $('wallpaper-feedback').textContent = 'Não foi possível preparar esta foto. Tente uma imagem menor ou outro formato.';
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 const validColor = value => typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value) ? value.toUpperCase() : null;
 const visualPremium = () => isPremium;
 const isSubjectRoom = room => !String(room.cidade || '').trim() && String(room.id || '').startsWith('public:assunto_');
@@ -229,6 +343,7 @@ async function loadPlan() {
     testAllowed = false;
   }
   updatePlanPresentation();
+  applyWallpaper();
   renderOwnProfile();
   renderOwnMusic();
 }
@@ -718,7 +833,16 @@ export async function initWebApp(context) {
   $('chat-back').addEventListener('click', () => showView(activeChat?.origin || 'conversas'));
   $('chat-name-color').addEventListener('click', openNameColorPicker);
   $('name-color-close').addEventListener('click', () => $('name-color-dialog').close());
+  $('wallpaper-chat-open').addEventListener('click', openWallpaperPicker);
+  $('wallpaper-profile-open').addEventListener('click', openWallpaperPicker);
+  $('wallpaper-close').addEventListener('click', () => $('wallpaper-dialog').close());
+  $('wallpaper-file').addEventListener('change', event => void uploadWallpaper(event));
   $('chat-form').addEventListener('submit', sendMessage);
+  $('chat-input').addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.repeat || event.keyCode === 229) return;
+    event.preventDefault();
+    if (!$('chat-input').disabled && !chatSending && $('chat-input').value.trim()) $('chat-form').requestSubmit();
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && activeChat) showView(activeChat.origin);
   });
