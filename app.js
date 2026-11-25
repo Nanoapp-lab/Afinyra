@@ -222,10 +222,10 @@ function updatePlanPresentation() {
   $('preview-plan-note').hidden = !simulated;
   $('home-plan-info').textContent = visualPremium()
     ? 'Premium: Chat Global e salas ilimitados. Esta é uma prévia visual quando seu plano real for diferente.'
-    : 'Free: 30 minutos grátis diários no Chat Global. As salas por assunto aguardam ativação da regra compartilhada no servidor.';
+    : 'Free: 30 minutos grátis diários compartilhados entre o Chat Global e as salas por assunto.';
   $('rooms-plan-note').textContent = visualPremium()
     ? '👑 Premium: Chat Global e salas ilimitados.'
-    : '♡ Free: 30 min/dia no Chat Global. A liberação das salas por assunto no Free ainda está pendente no servidor.';
+    : '♡ Free: 30 min/dia compartilhados entre o Chat Global e as salas por assunto. Salas por cidade são Premium.';
   if (currentView === 'salas') renderRooms();
 }
 
@@ -240,24 +240,24 @@ function appendRoom(room) {
     ? 'Conheça pessoas desta cidade e compartilhe histórias.'
     : 'Um espaço para conversar sobre o que vocês gostam.'));
   const actions = make('div', 'room-actions');
-  const canEnter = planVerified && isPremium && visualPremium();
-  const label = byCity ? '👑 Sala por cidade · Premium'
-    : (!visualPremium() ? '♡ Free: aguardando liberação no servidor' : '👑 Sala por assunto');
+  const subject = isSubjectRoom(room);
+  const canEnter = planVerified && (isPremium || subject);
+  const label = !subject ? '👑 Sala por cidade · Premium'
+    : isPremium ? '👑 Premium · ilimitado' : '♡ Free · usa os mesmos 30 min do Global';
   actions.append(make('span', 'lock-label', label));
   if (canEnter) {
     const enter = make('button', 'primary-action', 'Entrar na sala');
     enter.type = 'button';
     enter.addEventListener('click', () => void openChat({
-      id: String(room.id), name: String(room.nome || 'Sala'), origin: 'salas'
+      id: String(room.id), name: String(room.nome || 'Sala'),
+      cidade: String(room.cidade || ''), origin: 'salas'
     }));
     actions.append(enter);
   } else {
-    const button = make('button', 'outline-action', visualPremium() ? 'Entrar · prévia' : 'Acesso restrito');
+    const button = make('button', 'outline-action', 'Acesso restrito');
     button.type = 'button';
     button.disabled = true;
-    button.title = isSubjectRoom(room) && !isPremium
-      ? 'O acesso Free por assunto depende da ativação da regra no servidor.'
-      : 'Verificação do plano real necessária para entrar nesta sala.';
+    button.title = !planVerified ? 'Não foi possível verificar seu plano real.' : 'Esta sala exige Premium ativo.';
     actions.append(button);
   }
   card.append(actions);
@@ -354,8 +354,15 @@ function chatAccessText(state) {
   if (state?.premium === true) return '👑 Premium · ilimitado';
   const seconds = Number(state?.segundos_restantes);
   return Number.isFinite(seconds)
-    ? `♡ Free · ${Math.ceil(Math.max(0, seconds) / 60)} min restantes hoje`
-    : '♡ Free · 30 minutos grátis diários';
+    ? `♡ Free · ${Math.ceil(Math.max(0, seconds) / 60)} min compartilhados restantes hoje`
+    : '♡ Free · 30 minutos compartilhados por dia';
+}
+function roomTimeRpc(room) {
+  return room.id === 'Global' ? 'tempo_chat_global'
+    : isSubjectRoom(room) ? 'tempo_assunto_compartilhado' : 'tempo_sala_assunto';
+}
+function roomTimePayload(room, action) {
+  return room.id === 'Global' ? { p_acao: action } : { p_sala_id: room.id, p_acao: action };
 }
 function setChatEnabled(enabled) {
   $('chat-input').disabled = !enabled;
@@ -436,8 +443,8 @@ async function saveNameColor(hex) {
 async function openChat(room) {
   await leavingChat;
   if (activeChat) await leaveChat();
-  if (room.id !== 'Global' && (!planVerified || !isPremium)) {
-    friendly('Esta sala é exclusiva para assinantes Premium.', true);
+  if (!planVerified || (room.id !== 'Global' && !isPremium && !isSubjectRoom(room))) {
+    friendly(!planVerified ? 'Não foi possível conferir seu plano. Entre novamente.' : 'Esta sala é exclusiva para assinantes Premium.', true);
     return;
   }
   $('chat-title').textContent = room.name;
@@ -451,13 +458,11 @@ async function openChat(room) {
   showView('chat');
   try {
     await restriction();
-    const name = room.id === 'Global' ? 'tempo_chat_global' : 'tempo_sala_assunto';
-    const payload = room.id === 'Global' ? { p_acao: 'entrar' } : { p_sala_id: room.id, p_acao: 'entrar' };
-    const allowed = await rpc(name, payload);
+    const allowed = await rpc(roomTimeRpc(room), roomTimePayload(room, 'entrar'));
     if (activeChat !== chat) return;
     if (allowed?.permitido !== true) {
-      friendly(room.id === 'Global'
-        ? 'Seus 30 minutos grátis de hoje terminaram. Volte amanhã ou escolha Premium.'
+      friendly(room.id === 'Global' || isSubjectRoom(room)
+        ? 'Seus 30 minutos compartilhados entre o Global e as salas por assunto terminaram. Volte amanhã ou escolha Premium.'
         : 'Essa sala exige uma conta Premium ativa.', true, 'chat-feedback');
       await leaveChat();
       return;
@@ -484,9 +489,7 @@ async function heartbeat() {
   if (!chat?.ready || document.hidden) return;
   try {
     await restriction();
-    const name = chat.id === 'Global' ? 'tempo_chat_global' : 'tempo_sala_assunto';
-    const payload = chat.id === 'Global' ? { p_acao: 'ping' } : { p_sala_id: chat.id, p_acao: 'ping' };
-    const state = await rpc(name, payload);
+    const state = await rpc(roomTimeRpc(chat), roomTimePayload(chat, 'ping'));
     if (activeChat !== chat) return;
     if (state?.permitido !== true) {
       friendly('Seu tempo de hoje terminou. A conversa foi pausada.', true, 'chat-feedback');
@@ -513,9 +516,7 @@ async function leaveChat() {
   chatHeartbeat = null;
   setChatEnabled(false);
   if (chat.ready) {
-    const name = chat.id === 'Global' ? 'tempo_chat_global' : 'tempo_sala_assunto';
-    const payload = chat.id === 'Global' ? { p_acao: 'sair' } : { p_sala_id: chat.id, p_acao: 'sair' };
-    leavingChat = rpc(name, payload).catch(() => {});
+    leavingChat = rpc(roomTimeRpc(chat), roomTimePayload(chat, 'sair')).catch(() => {});
     await leavingChat;
   }
 }
@@ -614,7 +615,7 @@ export async function initWebApp(context) {
     $('create-room-dialog').showModal();
   });
   $('rooms-rules').addEventListener('click', () => window.alert(
-    'Salas Vivas do Afinzer\n\nFree: 30 minutos diários no Chat Global. O compartilhamento desse tempo com salas por assunto ainda precisa ser ativado no servidor.\n\nPremium: Chat Global e salas ilimitados. Criar salas por assunto ou cidade é Premium.\n\nEscolha a cor do seu nome no chat; os nomes coloridos são visíveis para todas as pessoas.'
+    'Salas Vivas do Afinzer\n\nFree: 30 minutos diários compartilhados entre o Chat Global e as salas por assunto.\n\nPremium: Chat Global e salas ilimitados. Salas por cidade e criação de salas são Premium.\n\nEscolha a cor do seu nome no chat; alterar a cor é um recurso Premium.'
   ));
   $('create-room-close').addEventListener('click', () => $('create-room-dialog').close());
   $('create-room-type').addEventListener('change', event => {
