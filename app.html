@@ -19,6 +19,13 @@
       </button>
       <div class="header-actions">
         <span id="plan-pill" class="plan-pill">Verificando plano…</span>
+        <label class="plan-preview-control" for="preview-plan">Prévia visual
+          <select id="preview-plan" aria-label="Comparar visualização Free e Premium">
+            <option value="real">Meu plano real</option>
+            <option value="free">Ver como Free</option>
+            <option value="premium">Ver como Premium</option>
+          </select>
+        </label>
         <a class="header-profile" href="conta.html">Editar perfil</a>
         <button type="button" id="logout" class="quiet-button">Sair</button>
       </div>
@@ -35,6 +42,7 @@
 
       <main id="main-content" class="app-content">
         <p id="app-feedback" class="app-feedback" role="status" aria-live="polite">Verificando sua conta…</p>
+        <p id="preview-plan-note" class="preview-plan-note" hidden>Modo de comparação visual: sua assinatura e seus acessos reais não foram alterados.</p>
 
         <section class="view" data-panel="inicio" aria-labelledby="home-title">
           <p class="overline">AFINZER WEB</p>
@@ -92,8 +100,28 @@
         </section>
 
         <section class="view" data-panel="salas" aria-labelledby="rooms-title" hidden>
-          <p class="overline">ESCOLHA SEU ASSUNTO</p><h1 id="rooms-title">Salas para conversar</h1>
-          <p class="lead">As salas são carregadas do mesmo servidor usado no aplicativo.</p>
+          <p class="overline">ENCONTRE SUA TURMA</p><h1 id="rooms-title">Salas Vivas</h1>
+          <p class="lead">Encontre pessoas por assunto ou cidade. As salas e as conversas são compartilhadas com o aplicativo Android.</p>
+          <p id="rooms-plan-note" class="rooms-plan-note">Conferindo seu plano…</p>
+          <div class="rooms-feature-actions">
+            <button type="button" id="rooms-global" class="rooms-global-button"><span aria-hidden="true">💬</span><span><strong>Chat Global</strong><small>Converse com toda a comunidade</small></span></button>
+            <button type="button" class="rooms-blind-button" disabled title="Recurso em integração com o site"><span aria-hidden="true">🎭</span><span><strong>Conversa às Cegas</strong><small>Em breve no site</small></span></button>
+          </div>
+          <div class="rooms-toolbar">
+            <label for="rooms-search" class="sr-only">Buscar salas por nome, assunto ou cidade</label>
+            <input id="rooms-search" type="search" autocomplete="off" placeholder="Buscar salas, assuntos ou cidades…">
+            <div class="rooms-tabs" role="group" aria-label="Filtrar salas">
+              <button type="button" class="rooms-tab active" data-room-filter="todas" aria-pressed="true">✨ Todas</button>
+              <button type="button" class="rooms-tab" data-room-filter="cidade" aria-pressed="false">📍 Cidade</button>
+              <button type="button" class="rooms-tab" data-room-filter="assunto" aria-pressed="false">💬 Assunto</button>
+              <button type="button" class="rooms-tab" data-room-filter="minhas" aria-pressed="false">★ Minhas</button>
+            </div>
+          </div>
+          <div class="rooms-action-row">
+            <button type="button" id="rooms-create" class="primary-action">＋ Criar sala</button>
+            <button type="button" id="rooms-rules" class="outline-action">ⓘ Regras</button>
+          </div>
+          <p id="rooms-count" class="rooms-count" aria-live="polite"></p>
           <p id="rooms-feedback" class="muted-note" role="status" aria-live="polite">Carregando salas…</p>
           <div id="rooms-list" class="rooms-list"></div>
         </section>
@@ -108,7 +136,7 @@
         </section>
 
         <section class="view" data-panel="chat" aria-labelledby="chat-title" hidden>
-          <button type="button" id="chat-back" class="back-button">← Voltar</button>
+          <div class="chat-topbar"><button type="button" id="chat-back" class="back-button">← Voltar</button><button type="button" id="chat-name-color" class="chat-color-button">🎨 Cor do nome</button></div>
           <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><span id="chat-time" class="chat-time">Conferindo acesso…</span></div>
           <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
           <div id="chat-messages" class="chat-messages" role="log" aria-label="Mensagens da conversa"></div>
@@ -117,6 +145,28 @@
             <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>
           </form>
         </section>
+
+        <dialog id="name-color-dialog" class="name-color-dialog" aria-labelledby="name-color-title">
+          <div class="picker-heading"><div><p class="overline">PERSONALIZE SEU NOME</p><h2 id="name-color-title">🎨 Escolha sua cor</h2></div><button type="button" id="name-color-close" class="quiet-button">Fechar</button></div>
+          <p>Experimente as opções. Com uma conta Premium real, a cor salva aparecerá para outras pessoas no site e no aplicativo.</p>
+          <p id="name-color-demo" class="name-color-demo">Exemplo do seu nome</p>
+          <div id="name-color-options" class="name-color-options"></div>
+          <p id="name-color-feedback" class="muted-note" role="status" aria-live="polite"></p>
+        </dialog>
+
+        <dialog id="create-room-dialog" class="create-room-dialog" aria-labelledby="create-room-title">
+          <div class="picker-heading"><h2 id="create-room-title">＋ Criar sala</h2><button type="button" id="create-room-close" class="quiet-button">Fechar</button></div>
+          <form id="create-room-form">
+            <label for="create-room-type">Tipo de sala</label>
+            <select id="create-room-type" required><option value="assunto">Sala por assunto</option><option value="cidade">Sala por cidade</option></select>
+            <label for="create-room-name">Nome da sala</label>
+            <input id="create-room-name" maxlength="80" minlength="3" required placeholder="Ex.: Amizades e boas conversas">
+            <label for="create-room-detail" id="create-room-detail-label">Assunto da sala</label>
+            <input id="create-room-detail" maxlength="80" minlength="2" required placeholder="Ex.: Música, viagens, filmes…">
+            <p id="create-room-feedback" role="status" aria-live="polite"></p>
+            <button type="submit" id="create-room-save" class="primary-action">Criar sala</button>
+          </form>
+        </dialog>
 
         <dialog id="discovery-dialog" class="discovery-dialog" aria-labelledby="discovery-title">
           <div class="discovery-dialog-top">
