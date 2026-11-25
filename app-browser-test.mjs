@@ -18,6 +18,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ executablePath: '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
 let premium = false;
+let testMode = 'real';
 const messages = [{ id: 'initial', created_at: new Date().toISOString(), conteudo: 'Olá, pessoal!', id_remetente: 'someone-else', nome_remetente: 'Pessoa do teste' }];
 const errors = [];
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -30,6 +31,13 @@ await page.route('https://bzjwgvnyfunlwxfzbbbc.supabase.co/**', async route => {
   if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST', 'access-control-allow-headers': '*' } });
   if (url.pathname === '/auth/v1/user') return ok({ id: 'person-one', email: 'usuario@example.test' });
   if (url.pathname.endsWith('/rpc/meu_premium_ativo')) return ok(premium);
+  if (url.pathname.endsWith('/rpc/meu_plano_teste')) return ok({ autorizado: true, modo: testMode,
+    premium_real: false, premium_efetivo: premium });
+  if (url.pathname.endsWith('/rpc/definir_plano_teste')) {
+    testMode = JSON.parse(req.postData()).p_modo;
+    premium = testMode === 'premium';
+    return ok({ autorizado: true, modo: testMode, premium_real: false, premium_efetivo: premium });
+  }
   if (url.pathname.endsWith('/rpc/moderacao_minha_restricao')) return ok({ restrita: false });
   if (url.pathname.endsWith('/rpc/tempo_chat_global')) return ok({ permitido: true, premium, segundos_restantes: 1790 });
   if (url.pathname.endsWith('/rpc/tempo_assunto_compartilhado')) return ok({ permitido: true, premium, segundos_restantes: 1790 });
@@ -65,19 +73,19 @@ try {
   await page.locator('.room-card').first().waitFor();
   ensure(await page.locator('.room-card button').first().isEnabled(), 'Free pode entrar em sala por assunto com saldo compartilhado');
   await page.locator('#preview-plan').selectOption('premium');
-  ensure((await page.locator('#real-plan-pill').innerText()).includes('Free real'), 'selecionar Premium visual mantém a conta Free real');
-  ensure(await page.locator('.room-card button').first().isDisabled(), 'prévia Premium não permite entrada real em sala');
-  ensure((await page.locator('.room-card .lock-label').first().innerText()).includes('prévia'), 'sala exibe regra Premium simulada');
-  await page.locator('#preview-return-real').click();
-  await page.screenshot({ path: resolve(root, 'app-preview-desktop.png'), fullPage: true });
-
-  premium = true;
-  await page.reload();
-  await page.locator('#plan-pill').getByText('Premium').waitFor();
+  await page.locator('#plan-pill').getByText('Premium · TESTE').waitFor();
+  ensure((await page.locator('#real-plan-pill').innerText()).includes('Free original'), 'Premium de teste preserva plano original');
   await page.locator('[data-view="salas"].nav-item').click();
+  ensure(await page.locator('.room-card button').first().isEnabled(), 'Premium de teste libera entrada real em sala');
+  await page.screenshot({ path: resolve(root, 'app-preview-desktop.png'), fullPage: true });
   await page.locator('.room-card button').first().click();
   await page.locator('#chat-input:not([disabled])').waitFor();
   ensure(await page.locator('#chat-title').innerText() === 'Música e boas conversas', 'Premium entra em sala real');
+  await page.locator('#preview-plan').selectOption('free');
+  await page.locator('#plan-pill').getByText('Free · TESTE').waitFor();
+  ensure((await page.locator('#rooms-plan-note').innerText()).includes('30 min/dia'), 'Modo Free aplica limite de tempo');
+  await page.locator('#preview-return-real').click();
+  await page.waitForFunction(() => document.querySelector('#plan-pill')?.textContent?.trim() === '♡ Free');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: resolve(root, 'app-preview-mobile.png'), fullPage: true });
   ensure(errors.length === 0, 'sem erros JavaScript: ' + errors.join('; '));
