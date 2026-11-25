@@ -5,8 +5,8 @@ button,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-al
 a{color:inherit;text-decoration:none}a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid #d59aff;outline-offset:3px}
 h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.045em;line-height:1.12;margin-bottom:14px}h2{font-size:1.3rem;letter-spacing:-.025em}
 .app-frame{max-width:1500px;margin:0 auto;padding:0 30px}
-.app-header{height:99px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #49314f7d}
-.app-brand{background:none;border:0;padding:4px;display:flex;align-items:center}.app-brand img{display:block;width:166px;height:auto}
+.app-header{height:115px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #49314f7d}
+.app-brand{background:none;border:0;padding:4px;display:flex;align-items:center}.app-brand img{display:block;width:252px;height:auto}
 .header-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
 .plan-pill{font-size:.85rem;color:#f1d7ff;padding:8px 14px;border:1px solid #9a5bb1;border-radius:22px;background:#51266888;white-space:nowrap}
 .plan-preview-control{display:flex;flex-direction:column;gap:4px;color:#d4aee6;font-size:.69rem;font-weight:850;letter-spacing:.03em}
@@ -259,3 +259,6 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 @media(max-width:700px){.profile-hero{align-items:flex-start}.profile-hero .profile-avatar{width:105px;height:105px}.profile-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-about-grid{grid-template-columns:1fr}.own-presentation{grid-row:auto}.own-info-card{padding:20px}.own-music-card{display:block}.own-music-card>p{margin-top:14px}.profile-facts-grid{grid-template-columns:1fr}.profile-section-heading h2{font-size:1.45rem}.own-photo figcaption{font-size:.73rem;padding:10px}.profile-hero .profile-copy h2{font-size:1.5rem}}
 @media(max-width:700px){.plan-pill{display:none}.plan-preview-control{font-size:.62rem}.plan-preview-control select{font-size:.75rem;min-width:115px;max-width:138px;padding:7px}.rooms-feature-actions{grid-template-columns:minmax(0,1fr)}.rooms-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.rooms-tab{padding:11px 8px}.rooms-action-row button{flex:1}.name-color-options{grid-template-columns:repeat(2,minmax(0,1fr))}.name-color-dialog,.create-room-dialog{padding:20px}.chat-bubble{min-width:0;max-width:88%}.chat-topbar{gap:6px}.chat-color-button{padding:10px;font-size:.86rem}}
 @media(max-width:700px){.room-card{grid-template-columns:1fr;gap:9px}.room-card .room-actions{justify-content:space-between}.room-card .lock-label{text-align:left}.rooms-pages{gap:7px}.rooms-pages button{padding:8px 10px;font-size:.82rem}}
+/* O logo não volta ao tamanho antigo no cabeçalho mobile. */
+@media(max-width:700px){.app-header{height:91px}.app-brand img{width:184px}}
+@media(max-width:380px){.app-brand img{width:157px}}

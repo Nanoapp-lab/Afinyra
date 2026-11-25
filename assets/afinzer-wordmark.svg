@@ -1,13 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 350" role="img" aria-label="Afinzer com três balões de conversa coloridos">
-  <title>Afinzer — três conversas, novas conexões</title>
-  <g fill="none" stroke="#AEA9C7" stroke-width="3.5" stroke-linecap="round" opacity=".75">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 350" role="img" aria-label="Afinzer: três balões de conversa em movimento contínuo">
+  <title>Afinzer — conversas em movimento</title>
+  <defs>
+    <linearGradient id="energia-afinzer" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FA5A68"/>
+      <stop offset=".52" stop-color="#D979FF"/>
+      <stop offset="1" stop-color="#99D529"/>
+    </linearGradient>
+    <filter id="brilho-afinzer" x="-50%" y="-100%" width="200%" height="300%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="brilho"/>
+      <feMerge><feMergeNode in="brilho"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Os fios ligam as conversas; os feixes luminosos nunca param de percorrê-los. -->
+  <g fill="none" stroke="#AEA9C7" stroke-width="3.5" stroke-linecap="round" opacity=".65">
     <path d="M276 96C356 70 432 71 508 83"/>
     <path d="M710 88C798 53 879 72 963 104"/>
   </g>
-  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M133 84C133 51 163 35 202 35C241 35 271 54 271 84C271 113 244 131 207 133L175 154L181 130C151 123 133 106 133 84Z" stroke="#FA5A68" stroke-width="11"/>
-    <path d="M502 82C502 35 547 13 609 13C670 13 717 39 717 83C717 127 683 153 626 156L586 184L591 153C536 148 502 122 502 82Z" stroke="#A34EA6" stroke-width="13"/>
-    <path d="M963 102C963 74 992 56 1026 56C1061 56 1089 76 1089 104C1089 132 1065 149 1034 150L1007 169L1012 148C980 143 963 126 963 102Z" stroke="#99D529" stroke-width="11"/>
+  <g fill="none" stroke="url(#energia-afinzer)" stroke-width="10" stroke-linecap="round" filter="url(#brilho-afinzer)">
+    <path d="M276 96C356 70 432 71 508 83" stroke-dasharray="17 220" stroke-dashoffset="220">
+      <animate attributeName="stroke-dashoffset" values="220;-254" dur="3.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".08;1;.12" dur="3.2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M710 88C798 53 879 72 963 104" stroke-dasharray="20 235" stroke-dashoffset="235">
+      <animate attributeName="stroke-dashoffset" values="235;-275" dur="3.2s" begin="-1.05s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".08;1;.12" dur="3.2s" begin="-1.05s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- Cada balão "recebe uma mensagem" em momentos alternados, para sempre. -->
+  <g transform="translate(202 91)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1.10;1.02;1;1" keyTimes="0;.08;.18;.29;.40;1" dur="3.2s" repeatCount="indefinite"/>
+      <path transform="translate(-202 -91)" d="M133 84C133 51 163 35 202 35C241 35 271 54 271 84C271 113 244 131 207 133L175 154L181 130C151 123 133 106 133 84Z" fill="none" stroke="#FA5A68" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g transform="translate(609 88)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1.10;1.02;1;1" keyTimes="0;.08;.18;.29;.40;1" dur="3.2s" begin="-1.07s" repeatCount="indefinite"/>
+      <path transform="translate(-609 -88)" d="M502 82C502 35 547 13 609 13C670 13 717 39 717 83C717 127 683 153 626 156L586 184L591 153C536 148 502 122 502 82Z" fill="none" stroke="#A34EA6" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g transform="translate(1026 107)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1;1;1.10;1.02;1;1" keyTimes="0;.08;.18;.29;.40;1" dur="3.2s" begin="-2.14s" repeatCount="indefinite"/>
+      <path transform="translate(-1026 -107)" d="M963 102C963 74 992 56 1026 56C1061 56 1089 76 1089 104C1089 132 1065 149 1034 150L1007 169L1012 148C980 143 963 126 963 102Z" fill="none" stroke="#99D529" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round" stroke-width="6">
+    <path d="M374 61L388 75L399 63L411 75" stroke="#FF9BEF" opacity="0">
+      <animate attributeName="opacity" values="0;0;.9;0;0" keyTimes="0;.10;.18;.29;1" dur="3.2s" repeatCount="indefinite"/>
+    </path>
+    <path d="M823 55L836 72L847 58L859 74" stroke="#BAFF62" opacity="0">
+      <animate attributeName="opacity" values="0;0;.9;0;0" keyTimes="0;.10;.18;.29;1" dur="3.2s" begin="-1.07s" repeatCount="indefinite"/>
+    </path>
   </g>
   <text x="101" y="333" font-family="DejaVu Sans, Arial, sans-serif" font-size="225" font-weight="600" letter-spacing="-10" fill="#B7B9FF">Afinzer</text>
 </svg>
