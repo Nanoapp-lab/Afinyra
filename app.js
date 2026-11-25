@@ -1,6 +1,7 @@
 // Area interna do Afinzer. Somente a chave publica fica no navegador;
 // autorizacao, plano e tempo de uso sao confirmados no servidor.
 import { initDiscoveries } from './deck-conexoes.js';
+import { formatBirthDateBR, formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 const $ = id => document.getElementById(id);
 const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat']);
 let api;
@@ -61,6 +62,84 @@ function safePhoto(value) {
     return parsed.protocol === 'https:' && parsed.hostname === 'bzjwgvnyfunlwxfzbbbc.supabase.co' ? parsed.href : null;
   } catch { return null; }
 }
+const OWN_PROFILE_COLUMNS = [
+  'nome', 'data_nascimento', 'cidade_atual', 'cidade_natal', 'genero', 'buscando',
+  'objetivo_conexao', 'altura', 'profissao', 'empresa', 'escolaridade', 'religiao',
+  'filhos', 'fumante', 'bebida', 'hobbies', 'idiomas', 'mensagem_dia',
+  'foto_url', 'fotos_perfil', 'cor_nome'
+].join(',');
+const OWN_PROFILE_FIELDS = [
+  ['Data de nascimento', 'data_nascimento', value => formatBirthDateBR(value)],
+  ['Cidade atual', 'cidade_atual'], ['Cidade natal', 'cidade_natal'],
+  ['Gênero', 'genero'], ['Quero conhecer', 'buscando'],
+  ['Objetivo da conexão', 'objetivo_conexao'],
+  ['Altura', 'altura', value => formatHeightCm(value) ? `${formatHeightCm(value)} m` : ''],
+  ['Profissão', 'profissao'], ['Empresa', 'empresa'],
+  ['Escolaridade', 'escolaridade'], ['Crenças / religião', 'religiao'],
+  ['Filhos', 'filhos'], ['Tabagismo', 'fumante'], ['Bebidas', 'bebida']
+];
+function textValue(value) {
+  return typeof value === 'string' ? value.trim() : value == null ? '' : String(value);
+}
+function ageFromBirthDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+  if (!match) return '';
+  const [year, month, day] = match.slice(1).map(Number);
+  const today = todayInSaoPaulo().split('-').map(Number);
+  const age = today[0] - year - (today[1] < month || (today[1] === month && today[2] < day) ? 1 : 0);
+  return age >= 18 && age <= 125 ? `${age} anos` : '';
+}
+function fillOwnTags(id, raw) {
+  const target = $(id);
+  const items = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(/[,;\n]/) : [];
+  target.replaceChildren();
+  const values = items.map(textValue).filter(Boolean);
+  if (!values.length) {
+    target.append(make('p', 'profile-empty', 'Ainda não informado. Você pode preencher em Editar perfil.'));
+    return;
+  }
+  values.forEach(value => target.append(make('span', 'profile-chip', value)));
+}
+function renderOwnProfile() {
+  const profile = userProfile || {};
+  $('profile-presentation').textContent = textValue(profile.mensagem_dia) || 'Você ainda não escreveu sua apresentação.';
+  fillOwnTags('profile-hobbies', profile.hobbies);
+  fillOwnTags('profile-languages', profile.idiomas);
+  const photos = profilePhotos(profile);
+  const gallery = $('profile-gallery');
+  gallery.replaceChildren();
+  photos.forEach((value, index) => {
+    const card = make('figure', 'own-photo');
+    const photo = safePhoto(value);
+    if (photo) {
+      const img = make('img');
+      img.src = photo;
+      img.alt = `Sua foto ${index + 1}${index === 0 ? ', principal' : ''}`;
+      img.loading = 'lazy';
+      img.referrerPolicy = 'no-referrer';
+      card.append(img);
+    } else {
+      card.append(make('span', 'own-photo-placeholder', value ? 'Foto sem prévia disponível neste navegador' : 'Espaço para foto'));
+    }
+    card.append(make('figcaption', null, index === 0 ? '★ Principal' : `Foto ${index + 1}`));
+    gallery.append(card);
+  });
+  const facts = $('profile-facts');
+  facts.replaceChildren();
+  OWN_PROFILE_FIELDS.forEach(([label, key, format]) => {
+    const card = make('div', 'profile-fact');
+    card.append(make('dt', 'profile-fact-label', label));
+    const formatted = format ? format(profile[key]) : textValue(profile[key]);
+    card.append(make('dd', formatted ? 'profile-fact-value' : 'profile-fact-value profile-empty', formatted || 'Não informado'));
+    facts.append(card);
+  });
+  const registered = OWN_PROFILE_FIELDS.filter(([, key]) => textValue(profile[key])).length;
+  const photosCount = photos.filter(Boolean).length;
+  $('profile-data-status').textContent = userProfile
+    ? `${registered} de ${OWN_PROFILE_FIELDS.length} campos preenchidos · ${photosCount} de 6 fotos cadastradas. Você pode completar os demais dados em Editar perfil.`
+    : 'Você ainda não cadastrou suas informações. Use Editar perfil para começar.';
+  $('profile-age').textContent = ageFromBirthDate(profile.data_nascimento);
+}
 function showView(view) {
   if (!sections.has(view)) view = 'inicio';
   if (activeChat && view !== 'chat') void leaveChat();
@@ -81,12 +160,15 @@ function showView(view) {
 
 async function loadProfile() {
   try {
-    const rows = await api.authenticated(`/rest/v1/usuarios?select=nome,cidade_atual,foto_url,cor_nome&id=eq.${encodeURIComponent(api.user.id)}&limit=1`);
+    // A aba Perfil le apenas o registro do proprio usuario autenticado.
+    // A liberacao de campos de outras pessoas continua regida pelo plano real.
+    const rows = await api.authenticated(`/rest/v1/usuarios?select=${OWN_PROFILE_COLUMNS}&id=eq.${encodeURIComponent(api.user.id)}&limit=1`);
     userProfile = Array.isArray(rows) ? rows[0] : null;
     const name = userProfile?.nome?.trim() || api.user.email?.split('@')[0] || 'você';
     $('welcome-text').textContent = `Olá, ${name}! Escolha onde a conversa vai começar.`;
     $('profile-name').textContent = name;
     $('profile-city').textContent = userProfile?.cidade_atual?.trim() || 'Cidade ainda não informada';
+    renderOwnProfile();
     const color = validColor(userProfile?.cor_nome);
     if (color) nameColors.set(api.user.id, color);
     const photo = safePhoto(userProfile?.foto_url);
@@ -96,10 +178,13 @@ async function loadProfile() {
       image.alt = '';
       image.referrerPolicy = 'no-referrer';
       $('profile-avatar').replaceChildren(image);
+    } else {
+      $('profile-avatar').replaceChildren(make('span', null, '♡'));
     }
   } catch {
     $('welcome-text').textContent = 'Sua conta está conectada. Vamos conversar?';
     $('profile-city').textContent = 'Não foi possível carregar seu perfil agora.';
+    $('profile-data-status').textContent = 'Não foi possível carregar seus dados. Recarregue a página e tente novamente.';
   }
 }
 async function loadPlan() {
