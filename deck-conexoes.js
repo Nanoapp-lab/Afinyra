@@ -126,7 +126,9 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
       const words = name(person).split(/\s+/).filter(Boolean);
       const initials = [words[0]?.[0], words.length > 1 ? words[words.length - 1][0] : ''].join('').toUpperCase();
       placeholder.append(make('div', 'deck-placeholder-halo', initials || '♡'));
-      placeholder.append(make('p', 'deck-photo-note', 'Foto de perfil ainda não adicionada'));
+      const demoImage = [person.foto_url, ...(Array.isArray(person.fotos_perfil) ? person.fotos_perfil : [])]
+        .some(value => typeof value === 'string' && value.startsWith('demo://'));
+      placeholder.append(make('p', 'deck-photo-note', demoImage ? 'Imagem demonstrativa sem foto disponível' : 'Foto de perfil não disponível'));
       surface.append(placeholder);
     }
     surface.append(make('div', 'deck-shade'));
@@ -285,9 +287,9 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
 
   function profileLine(parent, label, value) {
     if (value == null || value === '' || (Array.isArray(value) && !value.length)) return;
-    const row = make('p', 'discovery-info');
-    row.append(make('strong', null, `${label}: `));
-    row.append(document.createTextNode(Array.isArray(value) ? value.join(', ') : String(value)));
+    const row = make('div', 'discovery-field');
+    row.append(make('span', 'discovery-field-label', label));
+    row.append(make('p', 'discovery-field-value', Array.isArray(value) ? value.join(', ') : String(value)));
     parent.append(row);
   }
   function showProfile(id) {
@@ -297,52 +299,128 @@ export function initDiscoveries({ api, rpc, make, safePhoto, friendly, premium }
     const container = $('discovery-details');
     container.replaceChildren();
     $('discovery-title').textContent = `${name(person)}${age(person)}`;
+
+    const layout = make('div', 'discovery-layout');
+    const media = make('section', 'discovery-media');
+    media.setAttribute('aria-label', 'Fotos do perfil');
     const photos = (premium && Array.isArray(person.fotos_perfil))
       ? [...new Set(person.fotos_perfil.map(safePhoto).filter(Boolean))]
       : [];
     const cover = photo(person);
     if (cover && !photos.includes(cover)) photos.unshift(cover);
+
+    const frame = make('div', 'discovery-photo-frame');
     if (photos.length) {
       let photoIndex = 0;
       const image = make('img', 'discovery-hero');
       image.alt = `Foto de ${name(person)}`;
       image.src = photos[0];
       image.referrerPolicy = 'no-referrer';
-      container.append(image);
+      frame.append(image);
+      media.append(frame);
       if (photos.length > 1) {
-        const buttons = make('div', 'discovery-gallery');
-        const previous = make('button', null, 'Foto anterior');
-        const indicator = make('span', null, `1 de ${photos.length}`);
-        const next = make('button', null, 'Próxima foto');
+        const gallery = make('div', 'discovery-gallery');
+        const buttons = make('div', 'discovery-gallery-controls');
+        const previous = make('button', null, '‹ Anterior');
+        previous.type = 'button';
+        previous.setAttribute('aria-label', 'Foto anterior');
+        const indicator = make('span', null, `Foto 1 de ${photos.length}`);
+        const next = make('button', null, 'Próxima ›');
+        next.type = 'button';
+        next.setAttribute('aria-label', 'Próxima foto');
+        const thumbs = make('div', 'discovery-thumbnails');
+        const thumbButtons = photos.map((url, index) => {
+          const thumb = make('button', 'discovery-thumb');
+          thumb.type = 'button';
+          thumb.setAttribute('aria-label', `Mostrar foto ${index + 1}`);
+          const preview = make('img');
+          preview.src = url;
+          preview.alt = '';
+          preview.referrerPolicy = 'no-referrer';
+          preview.loading = 'lazy';
+          thumb.append(preview);
+          thumbs.append(thumb);
+          return thumb;
+        });
         const move = delta => {
           photoIndex = (photoIndex + delta + photos.length) % photos.length;
           image.src = photos[photoIndex];
-          indicator.textContent = `${photoIndex + 1} de ${photos.length}`;
+          indicator.textContent = `Foto ${photoIndex + 1} de ${photos.length}`;
+          thumbButtons.forEach((button, index) => button.setAttribute('aria-pressed', index === photoIndex ? 'true' : 'false'));
         };
         previous.addEventListener('click', () => move(-1));
         next.addEventListener('click', () => move(1));
+        thumbButtons.forEach((button, index) => button.addEventListener('click', () => move(index - photoIndex)));
+        move(0);
         buttons.append(previous, indicator, next);
-        container.append(buttons);
+        gallery.append(buttons, thumbs);
+        media.append(gallery);
       }
-    }
-    profileLine(container, 'Cidade', person.cidade_atual || 'Não informada');
-    container.append(presenceBadge(id));
-    profileLine(container, 'Apresentação', person.mensagem_dia);
-    if (premium) {
-      profileLine(container, 'Gênero', person.genero);
-      profileLine(container, 'Quer conhecer', person.buscando);
-      profileLine(container, 'Profissão', person.profissao);
-      profileLine(container, 'Altura', Number.isInteger(person.altura) ? `${(person.altura / 100).toFixed(2).replace('.', ',')} m` : null);
-      profileLine(container, 'Escolaridade', person.escolaridade);
-      profileLine(container, 'Crenças', person.religiao);
-      profileLine(container, 'Hobbies', person.hobbies);
-      profileLine(container, 'Idiomas', person.idiomas);
-      if (person.musica_atual) profileLine(container, 'Ouvindo agora', `${person.musica_atual}${person.artista_atual ? ' — ' + person.artista_atual : ''}`);
     } else {
-      container.append(make('p', 'muted-note', 'Detalhes completos e galeria disponíveis no Premium.'));
+      const placeholder = make('div', 'discovery-photo-placeholder');
+      const words = name(person).split(/\s+/).filter(Boolean);
+      const initials = [words[0]?.[0], words.length > 1 ? words[words.length - 1][0] : ''].join('').toUpperCase();
+      placeholder.append(make('div', 'discovery-placeholder-initials', initials || '♡'));
+      const hasDemoPhoto = [person.foto_url, ...(Array.isArray(person.fotos_perfil) ? person.fotos_perfil : [])]
+        .some(value => typeof value === 'string' && value.startsWith('demo://'));
+      placeholder.append(make('p', null, hasDemoPhoto
+        ? 'Este perfil usa uma imagem de demonstração, sem arquivo de foto disponível para o site.'
+        : 'Nenhuma foto disponível para exibição neste perfil.'));
+      frame.append(placeholder);
+      media.append(frame);
     }
+
+    const mediaCaption = make('p', 'discovery-media-note', photos.length
+      ? (premium ? 'Fotos compartilhadas neste perfil.' : 'Foto principal compartilhada neste perfil.')
+      : 'Assim que uma foto válida estiver disponível, ela aparecerá aqui.');
+    media.append(mediaCaption);
+    layout.append(media);
+
+    const content = make('div', 'discovery-content');
+    const introduction = make('section', 'discovery-introduction');
+    introduction.append(make('p', 'discovery-kicker', 'SOBRE ESTA PESSOA'));
+    introduction.append(make('h3', 'discovery-person-name', `${name(person)}${age(person)}`));
+    introduction.append(make('p', 'discovery-person-city', `⌖ ${person.cidade_atual || 'Cidade não informada'}`));
+    introduction.append(presenceBadge(id));
+    content.append(introduction);
+
+    const about = make('section', 'discovery-about');
+    about.append(make('h3', 'discovery-section-title', '✦ Apresentação'));
+    const presentation = typeof person.mensagem_dia === 'string' ? person.mensagem_dia.trim() : '';
+    about.append(make('p', 'discovery-about-text', presentation || 'Esta pessoa ainda não escreveu uma apresentação.'));
+    content.append(about);
+
+    if (premium) {
+      const details = make('section', 'discovery-extra');
+      details.append(make('h3', 'discovery-section-title', '♡ Um pouco mais sobre mim'));
+      const fields = make('div', 'discovery-facts');
+      profileLine(fields, 'Gênero', person.genero);
+      profileLine(fields, 'Quer conhecer', person.buscando);
+      profileLine(fields, 'Profissão', person.profissao);
+      profileLine(fields, 'Altura', Number.isInteger(person.altura) ? `${(person.altura / 100).toFixed(2).replace('.', ',')} m` : null);
+      profileLine(fields, 'Escolaridade', person.escolaridade);
+      profileLine(fields, 'Crenças / religião', person.religiao);
+      profileLine(fields, 'Hobbies', person.hobbies);
+      profileLine(fields, 'Idiomas', person.idiomas);
+      if (person.musica_atual) profileLine(fields, 'Ouvindo agora', `${person.musica_atual}${person.artista_atual ? ' — ' + person.artista_atual : ''}`);
+      if (fields.children.length) details.append(fields);
+      else details.append(make('p', 'discovery-about-text', 'Mais informações ainda não preenchidas.'));
+      content.append(details);
+    } else {
+      const limited = make('div', 'discovery-premium-note');
+      limited.append(make('span', 'discovery-premium-icon', '♛'));
+      const message = make('div');
+      message.append(make('strong', null, 'Conheça mais com o Premium'));
+      message.append(make('p', null, 'Os demais detalhes e a galeria completa de outras pessoas ficam disponíveis no Premium. Seu plano Free continua mostrando a foto principal e a apresentação.'));
+      limited.append(message);
+      content.append(limited);
+    }
+    layout.append(content);
+    container.append(layout);
     $('discovery-block').disabled = blocked.has(id);
-    $('discovery-dialog').showModal();
+    const dialog = $('discovery-dialog');
+    dialog.showModal();
+    dialog.scrollTop = 0;
   }
   async function blockProfile() {
     const id = currentProfile;
