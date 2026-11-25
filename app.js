@@ -2,7 +2,7 @@
 // autorizacao, plano e tempo de uso sao confirmados no servidor.
 import { initDiscoveries } from './deck-conexoes.js';
 import { initBlindConversations } from './conversa-cegas.js';
-import { formatBirthDateBR, formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
+import { formatHeightCm, profilePhotos, todayInSaoPaulo } from './perfil-utils.mjs';
 const $ = id => document.getElementById(id);
 const sections = new Set(['inicio', 'deck', 'conexoes', 'conversas', 'salas', 'perfil', 'chat', 'cegas']);
 let api;
@@ -78,16 +78,15 @@ const OWN_PROFILE_COLUMNS = [
   'foto_url', 'fotos_perfil', 'cor_nome', 'instagram', 'musica_atual', 'artista_atual', 'ocultar_idade'
 ].join(',');
 const OWN_PROFILE_FIELDS = [
-  ['Data de nascimento', 'data_nascimento', value => formatBirthDateBR(value)],
-  ['Cidade atual', 'cidade_atual'], ['Cidade natal', 'cidade_natal'],
-  ['Gênero', 'genero'], ['Quero conhecer', 'buscando'],
-  ['Objetivo da conexão', 'objetivo_conexao'],
-  ['Altura', 'altura', value => formatHeightCm(value) ? `${formatHeightCm(value)} m` : ''],
-  ['Profissão', 'profissao'], ['Empresa', 'empresa'],
-  ['Escolaridade', 'escolaridade'], ['Crenças / religião', 'religiao'],
-  ['Filhos', 'filhos'], ['Tabagismo', 'fumante'], ['Bebidas', 'bebida'],
-  ['Instagram', 'instagram']
+  ['👤', 'Gênero', 'genero'], ['🎯', 'Buscando', 'buscando'],
+  ['💟', 'Objetivo da conexão', 'objetivo_conexao'],
+  ['📏', 'Altura', 'altura', value => formatHeightCm(value) ? `${formatHeightCm(value)} m` : ''],
+  ['📍', 'Cidade natal', 'cidade_natal'], ['💼', 'Profissão', 'profissao'],
+  ['🏢', 'Empresa', 'empresa'], ['🎓', 'Escolaridade', 'escolaridade'],
+  ['👶', 'Filhos', 'filhos'], ['🚬', 'Fumante', 'fumante'],
+  ['🍷', 'Bebida', 'bebida'], ['✨', 'Religião', 'religiao']
 ];
+const FREE_PROFILE_FIELDS = new Set(['altura', 'religiao']);
 function textValue(value) {
   return typeof value === 'string' ? value.trim() : value == null ? '' : String(value);
 }
@@ -105,10 +104,10 @@ function fillOwnTags(id, raw) {
   target.replaceChildren();
   const values = items.map(textValue).filter(Boolean);
   if (!values.length) {
-    target.append(make('p', 'profile-empty', 'Ainda não informado. Você pode preencher em Editar perfil.'));
+    target.append(make('li', 'profile-empty', 'Ainda não informado.'));
     return;
   }
-  values.forEach(value => target.append(make('span', 'profile-chip', value)));
+  values.forEach(value => target.append(make('li', null, value)));
 }
 function renderOwnMusic() {
   const target = $('profile-music');
@@ -151,17 +150,18 @@ function renderOwnProfile() {
   });
   const facts = $('profile-facts');
   facts.replaceChildren();
-  OWN_PROFILE_FIELDS.forEach(([label, key, format]) => {
-    const card = make('div', 'profile-fact');
-    card.append(make('dt', 'profile-fact-label', label));
+  const displayed = isPremium ? OWN_PROFILE_FIELDS : OWN_PROFILE_FIELDS.filter(([, , key]) => FREE_PROFILE_FIELDS.has(key));
+  displayed.forEach(([icon, label, key, format]) => {
+    const card = make('div', 'profile-app-field');
+    card.append(make('span', 'profile-app-label', `${icon} ${label}:`));
     const formatted = format ? format(profile[key]) : textValue(profile[key]);
-    card.append(make('dd', formatted ? 'profile-fact-value' : 'profile-fact-value profile-empty', formatted || 'Não informado'));
+    card.append(make('span', formatted ? 'profile-app-value' : 'profile-app-value profile-empty', formatted || 'Não informado'));
     facts.append(card);
   });
-  const registered = OWN_PROFILE_FIELDS.filter(([, key]) => textValue(profile[key])).length;
+  const registered = OWN_PROFILE_FIELDS.filter(([, , key]) => textValue(profile[key])).length;
   const photosCount = photos.filter(Boolean).length;
   $('profile-data-status').textContent = userProfile
-    ? `${registered} de ${OWN_PROFILE_FIELDS.length} campos preenchidos · ${photosCount} de 6 fotos cadastradas. Você pode completar os demais dados em Editar perfil.`
+    ? `${photosCount} de 6 fotos · ${isPremium ? `Premium: ${registered} de ${OWN_PROFILE_FIELDS.length} informações cadastradas exibidas conforme preenchimento.` : 'Free: apresentação, hobbies, idiomas, altura e religião. Os demais dados continuam guardados e podem ser editados.'}`
     : 'Você ainda não cadastrou suas informações. Use Editar perfil para começar.';
   $('profile-age').textContent = ageFromBirthDate(profile.data_nascimento);
   renderOwnMusic();
@@ -229,6 +229,7 @@ async function loadPlan() {
     testAllowed = false;
   }
   updatePlanPresentation();
+  renderOwnProfile();
   renderOwnMusic();
 }
 function updatePlanPresentation() {
@@ -387,7 +388,7 @@ async function createRoom(event) {
     feedback.textContent = /duplicate|unique/i.test(error?.message || '')
       ? 'Já existe uma sala com esses dados. Tente outro nome.'
       : /permission|policy|premium|denied/i.test(error?.message || '')
-        ? 'O Supabase não autorizou a criação. Confira se seu Premium está ativo.'
+        ? 'Não foi possível criar a sala com seu plano atual. Confira seu acesso Premium.'
         : 'Não foi possível confirmar a criação da sala. Verifique a conexão e tente novamente.';
   } finally {
     button.disabled = false;
