@@ -510,6 +510,34 @@ async function loadReports() {
     target.replaceChildren(make('p', 'portal-alert error', 'Não foi possível carregar as denúncias. Verifique sua permissão administrativa e tente novamente.'));
   }
 }
+async function loadAdminBeta() {
+  const status = element('admin-beta-mensagem');
+  try {
+    const info = await authenticated('/rest/v1/rpc/afinzer_beta_status', { method: 'POST', body: '{}' });
+    const total = Number(info.total);
+    const limit = Number(info.limite);
+    if (!Number.isFinite(total) || !Number.isFinite(limit) || limit < 1) throw new Error('Dados inválidos');
+    element('admin-beta-ocupadas').textContent = `${total} de ${limit} contas cadastradas`;
+    element('admin-beta-restantes').textContent = `${Math.max(0, limit - total)} vagas restantes`;
+    element('admin-beta-progresso').style.width = `${Math.min(100, total / limit * 100)}%`;
+    element('admin-beta-ampliar').hidden = limit !== 50;
+    status.textContent = limit === 50 ? 'Primeira etapa ativa. A segunda etapa só abre com sua autorização.' : 'Etapa ampliada para 100 usuários. Limite máximo definido.';
+  } catch {
+    status.textContent = 'Não foi possível consultar o Beta. Tente atualizar.';
+  }
+}
+async function expandAdminBeta() {
+  const button = element('admin-beta-ampliar');
+  if (!window.confirm('Autorizar a ampliação do Beta Afinzer de 50 para 100 contas? Esta ação abre novas vagas imediatamente para o site e Android.')) return;
+  button.disabled = true;
+  element('admin-beta-mensagem').textContent = 'Registrando sua autorização...';
+  try {
+    await authenticated('/rest/v1/rpc/afinzer_beta_ampliar_100', { method: 'POST', body: '{}' });
+    await loadAdminBeta();
+  } catch {
+    element('admin-beta-mensagem').textContent = 'A ampliação não foi autorizada. Somente a conta proprietária pode realizar esta ação.';
+  } finally { button.disabled = false; }
+}
 async function initAdmin() {
   attachLogout();
   try {
@@ -522,7 +550,9 @@ async function initAdmin() {
     setMessage('Administrador autenticado.');
     element('admin-content').hidden = false;
     element('refresh-reports').addEventListener('click', loadReports);
-    await loadReports();
+    element('admin-beta-atualizar').addEventListener('click', loadAdminBeta);
+    element('admin-beta-ampliar').addEventListener('click', expandAdminBeta);
+    await Promise.all([loadReports(), loadAdminBeta()]);
   } catch { redirectToLogin(); }
 }
 
