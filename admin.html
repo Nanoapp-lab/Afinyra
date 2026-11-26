@@ -13,6 +13,14 @@
       <div id="admin-content" hidden>
         <div class="portal-actions"><span class="portal-pill ready">● Acesso administrativo</span><button type="button" class="portal-button secondary" id="refresh-reports">Atualizar denúncias</button><button type="button" class="portal-button secondary" id="logout">Sair</button></div>
         <div class="portal-grid" aria-label="Resumo da fila"><div class="portal-stat"><strong id="total-count">—</strong><span>Total consultado</span></div><div class="portal-stat"><strong id="pending-count">—</strong><span>Pendentes</span></div><div class="portal-stat"><strong id="review-count">—</strong><span>Em análise</span></div></div>
+        <section class="beta-vagas" aria-labelledby="admin-beta-heading">
+          <h2 id="admin-beta-heading">Beta Afinzer • Controle de vagas</h2>
+          <div class="beta-vagas-header"><strong id="admin-beta-ocupadas">Consultando contas...</strong><span id="admin-beta-restantes">—</span></div>
+          <div class="beta-vagas-track"><div id="admin-beta-progresso" class="beta-vagas-fill" style="width:0%"></div></div>
+          <p class="portal-subtle">As contas existentes são preservadas e entram na contagem. O teto final é de 100 usuários; nenhum pagamento é ativado.</p>
+          <div class="portal-actions"><button id="admin-beta-atualizar" type="button" class="portal-button secondary">Atualizar vagas</button><button id="admin-beta-ampliar" type="button" class="portal-button" hidden>Autorizar ampliação para 100</button></div>
+          <p id="admin-beta-mensagem" class="portal-status" role="status" aria-live="polite"></p>
+        </section>
         <p class="portal-subtle">As medidas administrativas são registradas com justificativa e histórico. Suspensões e banimentos precisam ser confirmados por você e podem ser revertidos. Denúncias e evidências não são apagadas automaticamente.</p>
         <h2 class="portal-history-title">Contas com restrições</h2>
         <div id="restriction-list" class="report-list" aria-live="polite">Carregando restrições...</div>
