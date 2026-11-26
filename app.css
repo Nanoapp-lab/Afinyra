@@ -218,6 +218,29 @@ h1,h2,p{margin-top:0}h1{font-size:clamp(2.05rem,4.2vw,3.2rem);letter-spacing:-.0
 .linear-chat .message-meta{font-size:.96rem;font-weight:850;margin:0;line-height:1.35}
 .linear-chat .message-time{font-size:.86rem;color:#d5bcde;opacity:.92;text-align:right;white-space:nowrap;margin:0;font-variant-numeric:tabular-nums}
 .linear-chat .message-text{font-size:1rem;line-height:1.5;margin:0}
+/* Conversa em linhas corridas, inspirada no bate-papo clássico e com a identidade Afinzer. */
+#chat-messages.uol-chat{gap:0;padding:8px 12px;scrollbar-color:#9253ac #23162c}
+.uol-chat .chat-bubble,.uol-chat .chat-bubble.mine{display:block;padding:9px 12px;min-height:35px;border:0;border-bottom:1px solid #67497570;border-radius:8px;background:transparent;line-height:1.65}
+.uol-chat .chat-bubble.mine{background:#67357a2b;border-left:3px solid #c26fe9;padding-left:9px}
+.uol-chat .chat-bubble:hover{background:#68417847}
+.uol-chat .message-heading{display:inline;margin:0;line-height:inherit}
+.uol-chat .message-heading .message-time{display:inline;margin:0 9px 0 0;color:#b8a5c5;font-size:.77rem;font-weight:500;white-space:nowrap}
+.uol-chat .message-heading .message-meta{display:inline;margin:0;color:#e9bfff;font-size:.94rem;font-weight:850;line-height:inherit}
+.uol-chat .message-heading .message-meta::after{content:' :';color:#ba9fc9}
+.uol-chat .message-text{display:inline;margin:0 0 0 7px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-format-toolbar{display:flex;align-items:end;flex-wrap:wrap;gap:10px 14px;margin-top:12px;padding:13px 15px;border:1px solid #78518d;border-radius:15px;background:linear-gradient(110deg,#342040,#271831)}
+.chat-format-title{display:flex;flex-direction:column;gap:3px;min-width:170px;flex:1 1 185px;color:#f0ceff;font-size:.87rem;font-weight:850}
+.chat-format-title small{font-size:.71rem;font-weight:500;color:#c5a6d7}
+.chat-format-toolbar label{display:flex;flex-direction:column;gap:5px;color:#e7cce9;font-size:.76rem;font-weight:750}
+.chat-format-toolbar select{height:38px;min-width:127px;max-width:190px;border:1px solid #9161a7;border-radius:9px;background:#21142c;color:#fff;padding:5px 10px;font-size:.84rem;cursor:pointer}
+.chat-format-toggles{display:flex;align-items:center;gap:6px}
+.chat-format-toggle,.chat-format-reset{min-width:37px;height:38px;border:1px solid #8e62a0;border-radius:10px;background:#4a2b5b;color:#f4dbff;font-size:.91rem;cursor:pointer}
+.chat-format-toggle[aria-pressed=true]{border-color:#efbbff;background:#a83fcd;color:#fff;box-shadow:0 0 0 2px #d588ec30 inset}
+.chat-format-reset{padding:0 9px;font-size:.79rem}
+.chat-format-toggle:hover,.chat-format-reset:hover{background:#764091}
+.chat-style-preview{display:flex;align-items:center;min-height:38px;max-width:100%;flex:1 1 210px;padding:5px 11px;border-left:2px solid #a657cb;color:#f0d5fb;overflow-wrap:anywhere}
+.chat-format-toolbar+ .chat-form{padding-top:10px}
+@media(max-width:700px){.chat-format-toolbar{padding:12px;gap:10px}.chat-format-title{flex-basis:100%}.chat-format-toolbar select{min-width:115px}.chat-format-toolbar label{flex:1 1 125px}.chat-style-preview{flex-basis:100%;font-size:.85rem}.uol-chat .chat-bubble,.uol-chat .chat-bubble.mine{padding:8px}.uol-chat .message-heading .message-time{font-size:.7rem;margin-right:6px}.uol-chat .message-heading .message-meta{font-size:.83rem}}
 .chat-form{display:flex;align-items:flex-end;gap:13px;padding:16px 0 0}.chat-form textarea{min-width:0;flex:1;resize:vertical;border:1px solid #6b4b80;background:#22152e;color:#fff;border-radius:13px;padding:14px 16px;max-height:170px;min-height:53px;line-height:1.45}
 .chat-form textarea::placeholder{color:#a997b4}.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .emoji-control{position:relative;flex:none;align-self:flex-end}

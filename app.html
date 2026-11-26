@@ -303,7 +303,18 @@
           <div class="chat-heading"><div><p class="overline">CONVERSA AO VIVO</p><h1 id="chat-title">Chat Global</h1></div><div class="chat-status"><span id="chat-time" class="chat-time">Conferindo acesso…</span><span id="chat-room-countdown" class="chat-room-countdown" aria-label="Tempo restante da sala" hidden></span></div></div>
           <p id="chat-expiration-warning" class="chat-expiration-warning" role="status" aria-live="polite" hidden></p>
           <p id="chat-feedback" class="chat-feedback" role="status" aria-live="polite"></p>
-          <div id="chat-messages" class="chat-messages linear-chat" role="log" aria-label="Mensagens da conversa"></div>
+          <div id="chat-messages" class="chat-messages linear-chat uol-chat" role="log" aria-label="Mensagens da conversa"></div>
+          <div class="chat-format-toolbar" role="group" aria-label="Estilo da sua mensagem">
+            <div class="chat-format-title"><span>✦ Seu estilo de conversa</span><small>Personalize a escrita como nos clássicos bate-papos</small></div>
+            <label for="chat-font">Fonte
+              <select id="chat-font" aria-label="Fonte da mensagem"><option value="padrao">Moderna</option><option value="classica">Clássica</option><option value="monoespaco">Máquina de escrever</option><option value="arredondada">Descontraída</option></select>
+            </label>
+            <label for="chat-font-size">Tamanho
+              <select id="chat-font-size" aria-label="Tamanho da mensagem"><option value="14">Pequena · 14</option><option value="16" selected>Normal · 16</option><option value="18">Média · 18</option><option value="20">Grande · 20</option><option value="22">Extra · 22</option></select>
+            </label>
+            <div class="chat-format-toggles"><button type="button" id="chat-bold" class="chat-format-toggle" aria-label="Negrito" aria-pressed="false" title="Negrito"><strong>B</strong></button><button type="button" id="chat-italic" class="chat-format-toggle" aria-label="Itálico" aria-pressed="false" title="Itálico"><em>I</em></button><button type="button" id="chat-format-reset" class="chat-format-reset" title="Restaurar estilo padrão">↺ Limpar</button></div>
+            <span id="chat-style-preview" class="chat-style-preview" aria-live="polite">Prévia: sua mensagem aparecerá assim ✨</span>
+          </div>
           <form id="chat-form" class="chat-form"><div class="emoji-control"><button type="button" id="chat-emoji" class="chat-emoji-button" aria-label="Escolher emoji" aria-controls="chat-emoji-picker" aria-expanded="false" title="Escolher emoji">😊</button><div id="chat-emoji-picker" class="chat-emoji-picker" role="group" aria-label="Emojis para conversa" hidden></div></div><label for="chat-input" class="sr-only">Escreva sua mensagem</label>
             <textarea id="chat-input" rows="2" maxlength="1500" placeholder="Escreva sua mensagem…" aria-describedby="chat-keyboard-hint" disabled required></textarea>
             <button type="submit" id="chat-send" class="primary-action" disabled>Enviar</button>

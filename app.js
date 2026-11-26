@@ -52,6 +52,59 @@ let lastTextColorSync = new Map();
 let changingTextColor = false;
 let colorPickerKind = 'name';
 
+// Preferencias locais de escrita; cada mensagem publicada leva o estilo consigo.
+const CHAT_FONT_FAMILIES = Object.freeze({
+  padrao: 'inherit',
+  classica: 'Georgia, "Times New Roman", serif',
+  monoespaco: '"Courier New", Courier, monospace',
+  arredondada: '"Trebuchet MS", Verdana, sans-serif'
+});
+const CHAT_FONT_SIZES = [14, 16, 18, 20, 22];
+const CHAT_DEFAULT_FORMAT = Object.freeze({ fonte_chat: 'padrao', tamanho_chat: 16, negrito_chat: false, italico_chat: false });
+let chatMessageFormat = { ...CHAT_DEFAULT_FORMAT };
+function normalizedChatFormat(raw) {
+  return {
+    fonte_chat: Object.hasOwn(CHAT_FONT_FAMILIES, raw?.fonte_chat) ? raw.fonte_chat : 'padrao',
+    tamanho_chat: CHAT_FONT_SIZES.includes(Number(raw?.tamanho_chat)) ? Number(raw.tamanho_chat) : 16,
+    negrito_chat: raw?.negrito_chat === true,
+    italico_chat: raw?.italico_chat === true
+  };
+}
+function chatFormatKey() { return `afinzer-chat-format-v1:${api?.user?.id || ''}`; }
+function previewChatFormat() {
+  const preview = $('chat-style-preview');
+  const draft = $('chat-input').value.trim();
+  preview.textContent = draft ? `Prévia: ${draft.slice(0, 90)}${draft.length > 90 ? '…' : ''}` : 'Prévia: sua mensagem aparecerá assim ✨';
+  preview.style.fontFamily = CHAT_FONT_FAMILIES[chatMessageFormat.fonte_chat];
+  preview.style.fontSize = `${chatMessageFormat.tamanho_chat}px`;
+  preview.style.fontWeight = chatMessageFormat.negrito_chat ? '800' : '400';
+  preview.style.fontStyle = chatMessageFormat.italico_chat ? 'italic' : 'normal';
+  $('chat-input').style.fontFamily = CHAT_FONT_FAMILIES[chatMessageFormat.fonte_chat];
+  $('chat-input').style.fontSize = `${chatMessageFormat.tamanho_chat}px`;
+  $('chat-input').style.fontWeight = chatMessageFormat.negrito_chat ? '800' : '400';
+  $('chat-input').style.fontStyle = chatMessageFormat.italico_chat ? 'italic' : 'normal';
+  $('chat-font').value = chatMessageFormat.fonte_chat;
+  $('chat-font-size').value = String(chatMessageFormat.tamanho_chat);
+  $('chat-bold').setAttribute('aria-pressed', String(chatMessageFormat.negrito_chat));
+  $('chat-italic').setAttribute('aria-pressed', String(chatMessageFormat.italico_chat));
+}
+function changeChatFormat(change) {
+  chatMessageFormat = normalizedChatFormat({ ...chatMessageFormat, ...change });
+  try { window.localStorage?.setItem(chatFormatKey(), JSON.stringify(chatMessageFormat)); } catch { /* Navegador sem armazenamento. */ }
+  previewChatFormat();
+}
+function initChatFormat() {
+  try { chatMessageFormat = normalizedChatFormat(JSON.parse(window.localStorage?.getItem(chatFormatKey()) || 'null')); }
+  catch { chatMessageFormat = { ...CHAT_DEFAULT_FORMAT }; }
+  previewChatFormat();
+  $('chat-font').addEventListener('change', event => changeChatFormat({ fonte_chat: event.target.value }));
+  $('chat-font-size').addEventListener('change', event => changeChatFormat({ tamanho_chat: Number(event.target.value) }));
+  $('chat-bold').addEventListener('click', () => changeChatFormat({ negrito_chat: !chatMessageFormat.negrito_chat }));
+  $('chat-italic').addEventListener('click', () => changeChatFormat({ italico_chat: !chatMessageFormat.italico_chat }));
+  $('chat-format-reset').addEventListener('click', () => changeChatFormat(CHAT_DEFAULT_FORMAT));
+  $('chat-input').addEventListener('input', previewChatFormat);
+}
+
 const NAME_COLORS = [
   { name: 'Ciano', hex: '#00D9FF' },
   { name: 'Roxo', hex: '#BA8EFF' },
@@ -873,7 +926,7 @@ async function loadMessages() {
   chatFetching = true;
   try {
     const id = encodeURIComponent(chat.id);
-    const records = await api.authenticated(`/rest/v1/mensagens?select=id,created_at,conteudo,id_remetente,nome_remetente&sala_id=eq.${id}&order=created_at.desc&limit=60`);
+    const records = await api.authenticated(`/rest/v1/mensagens?select=id,created_at,conteudo,id_remetente,nome_remetente,fonte_chat,tamanho_chat,negrito_chat,italico_chat&sala_id=eq.${id}&order=created_at.desc&limit=60`);
     const authorIds = (Array.isArray(records) ? records : []).map(message => message.id_remetente);
     await Promise.all([syncNameColors(authorIds), syncTextColors(authorIds)]);
     if (activeChat !== chat) return;
@@ -887,17 +940,22 @@ async function loadMessages() {
       const authorColor = nameColors.get(message.id_remetente);
       if (authorColor) author.style.color = authorColor;
       const heading = make('div', 'message-heading');
-      heading.append(author);
       const when = formatChatDateTime(message.created_at);
       if (when) {
         const stamp = make('time', 'message-time', when);
         stamp.dateTime = message.created_at;
         heading.append(stamp);
       }
+      heading.append(author);
       bubble.append(heading);
       const content = make('p', 'message-text', message.conteudo || '');
       const bodyColor = textColors.get(message.id_remetente);
       if (bodyColor) content.style.color = bodyColor;
+      const format = normalizedChatFormat(message);
+      content.style.fontFamily = CHAT_FONT_FAMILIES[format.fonte_chat];
+      content.style.fontSize = `${format.tamanho_chat}px`;
+      content.style.fontWeight = format.negrito_chat ? '800' : '400';
+      content.style.fontStyle = format.italico_chat ? 'italic' : 'normal';
       bubble.append(content);
       elements.push(bubble);
     }
@@ -928,7 +986,8 @@ async function sendMessage(event) {
       conteudo: draft,
       id_remetente: api.user.id,
       nome_remetente: userProfile?.nome?.trim() || 'Pessoa no Afinzer',
-      sala_id: chat.id
+      sala_id: chat.id,
+      ...chatMessageFormat
     };
     await api.authenticated('/rest/v1/mensagens', {
       method: 'POST',
@@ -937,6 +996,7 @@ async function sendMessage(event) {
     });
     // Se o usuario comecou a proxima mensagem, o novo texto permanece intacto.
     if (input.value.trim() === draft) input.value = '';
+    previewChatFormat();
     friendly('', false, 'chat-feedback');
     await loadMessages();
   } catch {
@@ -1038,6 +1098,7 @@ export async function initWebApp(context) {
   $('wallpaper-close').addEventListener('click', () => $('wallpaper-dialog').close());
   $('wallpaper-file').addEventListener('change', event => void uploadWallpaper(event));
   $('chat-form').addEventListener('submit', sendMessage);
+  initChatFormat();
   $('chat-input').addEventListener('keydown', event => {
     if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.repeat || event.keyCode === 229) return;
     event.preventDefault();

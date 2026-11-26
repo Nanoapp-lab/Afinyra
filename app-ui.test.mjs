@@ -369,6 +369,12 @@ assert.equal($('chat-room-countdown').hidden, false, 'Temporizador aparece duran
 assert.match($('chat-room-countdown').textContent, /Sala encerra em 00:1[0-4]:/, 'Contagem mostra horas, minutos e segundos');
 assert.match($('chat-expiration-warning').textContent, /15 minutos/, 'Aviso aparece nos últimos quinze minutos');
 const beforeSend = sentMessages.length;
+$('chat-font').fire('change', { target: { value: 'classica' } });
+$('chat-font-size').fire('change', { target: { value: '20' } });
+$('chat-bold').fire('click');
+$('chat-italic').fire('click');
+assert.match($('chat-style-preview').style.fontFamily, /Georgia/, 'Prévia usa fonte escolhida');
+assert.equal($('chat-style-preview').style.fontSize, '20px', 'Prévia usa tamanho escolhido');
 $('chat-input').value = 'Primeira linha\nSegunda linha';
 $('chat-input').fire('keydown', { key: 'Enter', shiftKey: true });
 assert.equal(sentMessages.length, beforeSend, 'Shift+Enter não envia mensagem');
@@ -378,6 +384,12 @@ $('chat-input').fire('keydown', { key: 'Enter' });
 await flush();
 assert.equal(sentMessages.length, beforeSend + 1, 'Enter envia mensagem sem clicar no botão');
 assert.equal(sentMessages.at(-1).conteudo, 'Primeira linha\nSegunda linha', 'Mensagem com múltiplas linhas é preservada');
+assert.deepEqual({ fonte_chat: sentMessages.at(-1).fonte_chat, tamanho_chat: sentMessages.at(-1).tamanho_chat,
+  negrito_chat: sentMessages.at(-1).negrito_chat, italico_chat: sentMessages.at(-1).italico_chat },
+{ fonte_chat: 'classica', tamanho_chat: 20, negrito_chat: true, italico_chat: true },
+'A fonte e o estilo são enviados junto da mensagem para todos verem');
+$('chat-format-reset').fire('click');
+assert.equal($('chat-font').value, 'padrao', 'É possível restaurar a fonte padrão');
 assert.equal($('chat-input').value, '', 'Campo é limpo após confirmação de envio');
 $('chat-emoji').fire('click');
 find($('chat-emoji-picker'), node => node.textContent === '❤️').fire('click');
