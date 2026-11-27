@@ -265,24 +265,37 @@ function friendlyMeasure(restriction) {
   return restriction?.tipo === 'banimento' ? 'Banimento por tempo indeterminado' :
     `Suspensão até ${formatDate(restriction?.termina_em)}`;
 }
-async function submitMeasure(item, select, reason, feedback, button) {
+async function submitMeasure(item, select, publicReason, reason, feedback, button) {
   const parsed = parseMeasure(select.value);
   if (!parsed || !item.denunciado || !moderationAvailable) return;
+  const reasonForUser = publicReason.value.trim();
+  if (reasonForUser.length < 5 || reasonForUser.length > 200) {
+    return feedback.textContent = 'Informe o motivo público para o usuário (5 a 200 caracteres).';
+  }
   const justification = reason.value.trim();
   if (justification.length < 5) return feedback.textContent = 'Descreva a justificativa (mínimo de 5 caracteres).';
   const actionName = MODERATION_ACTIONS.find(a => a.value === select.value)?.label || parsed.medida;
-  const ok = window.confirm(`Aplicar: ${actionName}\nConta: ${moderationProfile(item.denunciado)}\n\nMotivo: ${justification}\n\nConfirmar esta medida administrativa?`);
+  const ok = window.confirm(`Aplicar: ${actionName}\nConta: ${moderationProfile(item.denunciado)}\n\nMotivo público: ${reasonForUser}\nJustificativa pública: ${justification}\n\nA pessoa receberá essas informações, mas NÃO verá quem denunciou. Confirmar?`);
   if (!ok) return;
   button.disabled = true;
   feedback.textContent = 'Aplicando medida...';
   try {
+    // Guarda somente o resumo público. O relato do denunciante e a nota interna
+    // não são disponibilizados ao usuário denunciado.
+    const source = item.source === 'cegas' ? 'cegas_denuncias' : 'denuncias';
+    const preparado = await authenticated(`/rest/v1/${source}?id=eq.${encodeURIComponent(item.id)}&select=id`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({ motivo_publico: reasonForUser })
+    });
+    if (!Array.isArray(preparado) || preparado.length !== 1) throw new Error('Não foi possível preparar o motivo público');
     await authenticated('/functions/v1/vibeorbit-moderacao', {
       method: 'POST', body: JSON.stringify({
         action: 'aplicar', usuario_id: item.denunciado, origem: item.source,
         denuncia_id: item.id, medida: parsed.medida, horas: parsed.horas, motivo: justification
       })
     });
-    feedback.textContent = 'Medida registrada e enviada ao controle de acesso.';
+    feedback.textContent = 'Medida registrada. O aviso foi salvo para a pessoa afetada.';
     await loadReports();
   } catch (error) {
     feedback.textContent = `Medida não confirmada: ${error.message}`;
@@ -365,9 +378,16 @@ function measurePeriod(action) {
   return `${duration} · até ${formatDate(action.termina_em)}`;
 }
 
-async function saveDecision(item, select, note, feedback, button) {
+async function saveDecision(item, select, note, publicReason, publicExplanation, feedback, button) {
   const newStatus = select.value;
   if (!VALID_STATUSES.includes(newStatus)) return;
+  const reasonForUser = publicReason.value.trim();
+  const explanationForUser = publicExplanation.value.trim();
+  if (['resolvida','descartada'].includes(newStatus) &&
+      (reasonForUser.length < 5 || explanationForUser.length < 5)) {
+    feedback.textContent = 'Para concluir a análise, informe motivo e justificativa públicos (mínimo de 5 caracteres).';
+    return;
+  }
   button.disabled = true;
   feedback.textContent = 'Registrando decisão...';
   try {
@@ -375,10 +395,17 @@ async function saveDecision(item, select, note, feedback, button) {
     const updated = await authenticated(`/rest/v1/${source}?id=eq.${encodeURIComponent(item.id)}&select=id,status`, {
       method: 'PATCH',
       headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({ status: newStatus, nota_moderacao: note.value.trim().slice(0, 1000) })
+      body: JSON.stringify({
+        status: newStatus,
+        nota_moderacao: note.value.trim().slice(0, 1000),
+        motivo_publico: reasonForUser.slice(0, 200),
+        justificativa_publica: explanationForUser.slice(0, 1000)
+      })
     });
     if (!Array.isArray(updated) || updated.length !== 1) throw new Error('Sem autorização para alterar');
-    feedback.textContent = 'Decisão registrada com sucesso.';
+    feedback.textContent = ['resolvida','descartada'].includes(newStatus) ?
+      'Decisão registrada. O primeiro comunicado desta conclusão é salvo para a pessoa, sem o nome do denunciante.' :
+      'Andamento interno registrado, sem enviar comunicado.';
     await loadReports();
   } catch {
     feedback.textContent = 'Não foi possível registrar. Verifique a sessão e tente novamente.';
@@ -412,7 +439,7 @@ function renderReport(item) {
   field.append(label, select);
   card.append(field);
   const noteField = make('div', 'portal-field');
-  const noteLabel = make('label', null, 'Observação interna (máximo 1.000 caracteres)');
+  const noteLabel = make('label', null, 'Observação interna — NÃO enviada à pessoa (máximo 1.000 caracteres)');
   const note = make('textarea');
   note.maxLength = 1000;
   note.value = item.nota_moderacao || '';
@@ -420,14 +447,32 @@ function renderReport(item) {
   noteLabel.htmlFor = note.id;
   noteField.append(noteLabel, note);
   card.append(noteField);
+  const publicReasonField = make('div', 'portal-field');
+  const publicReasonLabel = make('label', null, 'Motivo público — visível à pessoa denunciada (máximo 200 caracteres)');
+  const publicReason = make('textarea'); publicReason.maxLength = 200;
+  publicReason.value = item.motivo_publico || '';
+  publicReason.placeholder = 'Ex.: conduta inadequada no chat. Não revele a identidade de quem denunciou.';
+  publicReason.id = `motivo-publico-${item.source}-${item.id}`;
+  publicReasonLabel.htmlFor = publicReason.id;
+  publicReasonField.append(publicReasonLabel, publicReason);
+  card.append(publicReasonField);
+  const publicExplanationField = make('div', 'portal-field');
+  const publicExplanationLabel = make('label', null, 'Justificativa pública da decisão — NÃO use a nota interna');
+  const publicExplanation = make('textarea'); publicExplanation.maxLength = 1000;
+  publicExplanation.value = item.justificativa_publica || '';
+  publicExplanation.id = `justificativa-publica-${item.source}-${item.id}`;
+  publicExplanation.placeholder = 'Explique o resultado da análise com respeito e sem identificar o denunciante.';
+  publicExplanationLabel.htmlFor = publicExplanation.id;
+  publicExplanationField.append(publicExplanationLabel, publicExplanation);
+  card.append(publicExplanationField);
   const button = make('button', 'portal-button', 'Registrar decisão');
   button.type = 'button';
   const feedback = make('p', 'portal-subtle');
   feedback.setAttribute('role', 'status');
-  button.addEventListener('click', () => saveDecision(item, select, note, feedback, button));
+  button.addEventListener('click', () => saveDecision(item, select, note, publicReason, publicExplanation, feedback, button));
   card.append(button, feedback);
   const sanctionTitle = make('h4', 'sanction-title', 'Medida sobre a conta denunciada');
-  const sanctionHint = make('p', 'portal-subtle', 'Uma denúncia resolvida não aplica punições automaticamente. Esta medida terá registro próprio e exigirá confirmação.');
+  const sanctionHint = make('p', 'portal-subtle', 'Uma denúncia resolvida não aplica punições automaticamente. A pessoa verá o motivo público acima, a medida e a justificativa abaixo. Não compartilhe dados do denunciante.');
   const sanctionField = make('div', 'portal-field');
   const sanctionLabel = make('label', null, 'Medida administrativa');
   const sanctionSelect = make('select'); sanctionSelect.id = `medida-${item.source}-${item.id}`;
@@ -438,7 +483,7 @@ function renderReport(item) {
   }
   sanctionField.append(sanctionLabel, sanctionSelect);
   const justificationField = make('div', 'portal-field');
-  const justificationLabel = make('label', null, 'Justificativa da medida (obrigatória)');
+  const justificationLabel = make('label', null, 'Justificativa pública da medida — enviada à pessoa (obrigatória)');
   const justification = make('textarea'); justification.maxLength = 1000;
   justification.id = `motivo-medida-${item.source}-${item.id}`;
   justification.placeholder = 'Descreva os fatos examinados. Não use apenas uma palavra.';
@@ -447,7 +492,7 @@ function renderReport(item) {
   const sanctionButton = make('button', 'portal-button sanction-button', 'Aplicar medida');
   sanctionButton.type = 'button'; sanctionButton.disabled = !moderationAvailable || !item.denunciado;
   const sanctionFeedback = make('p', 'portal-subtle'); sanctionFeedback.setAttribute('role','status');
-  sanctionButton.addEventListener('click', () => submitMeasure(item, sanctionSelect, justification, sanctionFeedback, sanctionButton));
+  sanctionButton.addEventListener('click', () => submitMeasure(item, sanctionSelect, publicReason, justification, sanctionFeedback, sanctionButton));
   card.append(sanctionTitle, sanctionHint, sanctionField, justificationField, sanctionButton, sanctionFeedback);
   if (!moderationAvailable) card.append(make('p', 'portal-alert error', 'Medidas administrativas indisponíveis. Tente novamente mais tarde.'));
   return card;
@@ -478,8 +523,8 @@ async function loadReports() {
   target.replaceChildren(make('p', 'portal-subtle', 'Atualizando denúncias...'));
   try {
     const [general, blind] = await Promise.all([
-      authenticated('/rest/v1/denuncias?select=id,denunciante_id,denunciado_id,motivo,status,nota_moderacao,created_at&order=created_at.desc&limit=100'),
-      authenticated('/rest/v1/cegas_denuncias?select=id,conversa_id,denunciante,denunciado,motivo,status,nota_moderacao,criado_em&order=criado_em.desc&limit=100')
+      authenticated('/rest/v1/denuncias?select=id,denunciante_id,denunciado_id,motivo,status,nota_moderacao,motivo_publico,justificativa_publica,created_at&order=created_at.desc&limit=100'),
+      authenticated('/rest/v1/cegas_denuncias?select=id,conversa_id,denunciante,denunciado,motivo,status,nota_moderacao,motivo_publico,justificativa_publica,criado_em&order=criado_em.desc&limit=100')
     ]);
     const records = [
       ...general.map(r => ({ ...r, source: 'geral', date: r.created_at, denunciante: r.denunciante_id, denunciado: r.denunciado_id })),
